@@ -35,7 +35,6 @@ BLACK = (0,0,0)
 colorvector = np.vectorize(lambda g: 0 if g < threshold else g)
 greenlayer = np.array(green)[:,:,1]
 burnable = colorvector(greenlayer)
-print(burnable)
 
 # gb = np.zeros((green.size[0], green.size[1],3))
 # for x in range(green.size[0]):
@@ -60,16 +59,169 @@ def plotgrid(myarray):
     plt.tick_params(axis='both', which='both',  #I believe this is stylistic editing
                     bottom='off', top='off', left='off', right='off',
                     labelbottom='off', labelleft='off')
-    print(myarray)
+    
     
 plotgrid(greenlayer)
-plt.show()
+
+
+
+#status
+BURNING = 1
+SMOLDERING = 2
+GREEN = 0
+BURNT = 3
+WATER = -1
+
+
+#wind direction
+N = 1
+NE = 2
+E = 3
+SE = 4
+S = 5
+SW = 6
+W = 7
+NW = 8
+
+
+
+#biomes
+WATER = 0
+URBAN = 1 #not flammable
+ALPINE = 2 #not flammable
+DESERT = 3 #not flammable
+SHRUB = 4  #not flammable at all
+MONTANE = 5 #2nd highest burn
+CHAPARRAL = 6 #highest burn
+CONIFEROUS = 7 #medium burn
+SCRUB = 8 #low burn
+
+#class for each frame of game board
+#each frame should be one pixel of map
+class Frame:
+    windspeed = 0
+    humidity = 0
+    elevation = 0
+    biome = 0
+    wind_direction = NE
+    status = GREEN
+    transition = False
+    crowning = False
+    conditions = None
+
+
+#Assuming we can get RGB values, this is how we determine the biome for each pixel.
+def biome(RGB):
+	if RGB == (1, 174, 240) or (8, 155, 5):
+		return WATER
+	if RGB == (255, 188, 51):
+		return SCRUB
+	if RGB == (255, 155, 227) or (83, 137, 87):
+		return CONIFEROUS
+	if RGB == (254, 244, 1):
+		return GRASS
+
+#This is the dictionary of biome types, including their 4 associated variables.
+#0. Difficulty to set on fire
+#1. Scaling factor for windspeed
+#2. Scaling factor for humidity
+#3. Scaling factor for elevatio
+
+def crowntransit(biome):
+	windspeed = 5
+	wind_direction = NE;
+	humidity = 0;
+	elevation = 7;
+
+	BIDICT = {
+	'WATER': (-1000, 0, 0, 0), 
+	'SCRUB': (100, 10, -10, 5),
+	}
+
+	if((BIDICT[biome][0] + BIDICT[biome][1]* windspeed - BIDICT[biome][2]* humidity) >0):
+		crowning = True
+	else:
+		crowning = False
+
+	if((BIDICT[biome][0] - BIDICT[biome][3]* elevation + BIDICT[biome][1]* windspeed) >0):
+		transiting = True
+	else:
+		transiting = False
+	return (crowning, transiting)
+
+print(crowntransit('WATER'))
 exit()
+#burns happen uphill
+
+#algorithm determines T and C
 
 
 
+#surface burn -slow fire : 
 
-def advance_board(game_board):
+
+def set_board(burnable):
+    windspeed = 5
+    wind_direction = NE;
+    humidity = 0;
+    new_board = np.zeros_like(game_board)
+
+
+    for x in range(game_board.shape[0]):
+        for y in range(game_board.shape[1]):    
+            game_board[x,y] = Frame()
+
+
+
+    for x in range(game_board.shape[0]):
+        for y in range(game_board.shape[1]):     
+
+            if (x == 0 and y == 0):
+                game_board[x,y].windspeed = 5
+                game_board[x+1,y+1].windspeed = 5
+                game_board[x+1,y].windspeed = 4
+                game_board[x, y+1].windspeed = 4
+                game_board[x, y].humidity = 1
+            else:
+                if(((x + xalt) < game_board.shape[0]) and 
+                    (x+xalt) > 0 and
+                    ((y + yalt) < game_board.shape[1]) and
+                    (y + yalt > 0)):
+                    if (game_board[x,y].windspeed != 0):
+                        game_board[x+1,y+1].windspeed = game_board[x,y].windspeed
+                        game_board[x+1,y].windspeed = game_board[x,y].windspeed - 1
+                        game_board[x, y+1].windspeed = game_board[x,y].windspeed - 1
+                        game_board[x, y].humidity = 1
+                        if((windspeed - humidity - biome) >0):
+                            crowning  = True
+                        else:
+                            crowning = False
+                        if((windspeed + elevation - biome) > 0):
+                            transition = True
+                        else:
+                            transition = False
+
+                        #T and C determines Movement
+
+                        #transition: fire moves up tree = more likely to move, medium/fast fire
+                        #crowning : move across frames
+                        #+T +C = moves super fast
+                        #+T  -C = full stop, stays in place until burns out with no wind or wind moves it 
+                        #-T -C =Surface Fire, very slow
+                        #-T +C = Medium, Normal
+
+                        if(transition and crowning):
+                            game_board[x, y].conditions = high
+                        elif(transition and not crowning):
+                            game_board[x, y].conditions = stop
+                        elif(not transition and crowning):
+                            game_board[x, y].conditions = medium
+                        elif(not transition and not crowning):
+                            game_board[x, y].conditions = slow
+
+
+
+def set_fire(game_board):
     '''
     Advances the game board using the given rules.
     Input: the initial game board.
@@ -77,7 +229,7 @@ def advance_board(game_board):
     '''
     
     # create a new array that's just like the original one, but initially set to all zeros (i.e., totally empty)
-    new_board = np.zeros_like(game_board)
+   
     
     # loop over each cell in the board and decide what to do.
     # You'll need two loops here, one nested inside the other.
@@ -146,9 +298,6 @@ def advance_board(game_board):
 
 
 
-
-
-
 # In[41]:
 
 # 
@@ -172,7 +321,7 @@ for i in range(100):
 
     # 
     board_size = 50
-    game_board = advance_board(game_board)
+    game_board = set_fire(game_board)
     
     # 
     plotgrid(game_board)
