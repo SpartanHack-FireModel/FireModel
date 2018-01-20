@@ -1,0 +1,65 @@
+<!doctype html>
+<html>
+
+<head>
+</head>
+
+<body>
+<div id="container" align="center">
+<span>Fire Simulation</span>
+<br/>
+  <canvas id="board" width="500px" height="500px"></canvas>
+  <br/>
+  <label for="myRange">Frame</label>
+  <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+  <form id="entryForm">
+
+  </form>
+  </div>
+  <script>
+  const server = "http://127.0.0.1:5000/startsimulation";
+  let frames = 0;
+  let sub = '';
+  let curFrame = 0;
+  function displayImage(subDir, frameNumber) {
+    const canvas = document.getElementById('board').getContext('2d');
+    console.log('Getting image');
+    const img = new Image();
+    img.src = `http://127.0.0.1:5000/imgs/${subDir}/frame_${frameNumber}.png`;
+    img.onload = () => {
+      canvas.drawImage(img, 0, 0);
+    };
+  }
+
+  const slider = document.getElementById('myRange');
+  slider.onchange = ()=>{
+    displayImage(sub,slider.value);
+  };
+
+  function execute() {
+    // Call the flask server
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', server, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onload = function (e) {
+      if (this.status == 200) {
+        console.log(this.responseText);
+        const jsObj = JSON.parse(this.responseText);
+        frames = jsObj.Frames;
+        sub = jsObj.Subdir;
+        
+        slider.min = 1;
+        slider.max = frames;
+        // setInterval(loopImages,1000);
+         displayImage(jsObj.Subdir, 1);
+         slider.value = 1;
+      }
+    };
+
+    xhr.send(JSON.stringify({ 'test': 1 }));
+  }
+
+  </script>
+</body>
+
+</html>

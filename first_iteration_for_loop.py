@@ -35,7 +35,6 @@ BLACK = (0,0,0)
 colorvector = np.vectorize(lambda g: 0 if g < threshold else g)
 greenlayer = np.array(green)[:,:,1]
 burnable = colorvector(greenlayer)
-print(burnable)
 
 # gb = np.zeros((green.size[0], green.size[1],3))
 # for x in range(green.size[0]):
@@ -60,11 +59,11 @@ def plotgrid(myarray):
     plt.tick_params(axis='both', which='both',  #I believe this is stylistic editing
                     bottom='off', top='off', left='off', right='off',
                     labelbottom='off', labelleft='off')
-    print(myarray)
     
-plotgrid(greenlayer)
-plt.show()
-exit()
+    
+    plotgrid(greenlayer)
+
+
 
 
 
@@ -111,17 +110,58 @@ class Frame:
     biome = 0
     wind_direction = NE
     current_status = GREEN
-    transition = FALSE
-    crowning = false
-    conditions = none
+    transition = False
+    crowning = False
+    conditions = None
     new_status = GREEN
     burn_count = 0
 
 
+
+
+
+#Assuming we can get RGB values, this is how we determine the biome for each pixel.
+def biome(RGB):
+	if RGB == (1, 174, 240) or (8, 155, 5):
+		return WATER
+	if RGB == (255, 188, 51):
+		return SCRUB
+	if RGB == (255, 155, 227) or (83, 137, 87):
+		return CONIFEROUS
+	if RGB == (254, 244, 1):
+		return GRASS
+
+#This is the dictionary of biome types, including their 4 associated variables.
+#0. Difficulty to set on fire
+#1. Scaling factor for windspeed
+#2. Scaling factor for humidity
+#3. Scaling factor for elevatio
+
+def crowntransit(biome):
+	windspeed = 5
+	wind_direction = NE;
+	humidity = 0;
+	elevation = 7;
+
+	BIDICT = {
+	'WATER': (-1000, 0, 0, 0), 
+	'SCRUB': (100, 10, -10, 5),
+	}
+
+	if((BIDICT[biome][0] + BIDICT[biome][1]* windspeed - BIDICT[biome][2]* humidity) >0):
+		crowning = True
+	else:
+		crowning = False
+
+	if((BIDICT[biome][0] - BIDICT[biome][3]* elevation + BIDICT[biome][1]* windspeed) >0):
+		transiting = True
+	else:
+		transiting = False
+	return (crowning, transiting)
+
+
+
 #burns happen uphill
-
-
-
 
 #algorithm determines T and C
 
