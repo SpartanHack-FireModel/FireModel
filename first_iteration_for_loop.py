@@ -66,10 +66,126 @@ plotgrid(greenlayer)
 plt.show()
 exit()
 
+#status
+BURNING = 1
+SMOLDERING = 2
+GREEN = 0
+BURNT = 3
+WATER = -1
+
+
+#wind direction
+N = 1
+NE = 2
+E = 3
+SE = 4
+S = 5
+SW = 6
+W = 7
+NW = 8
 
 
 
-def advance_board(game_board):
+#biomes
+WATER = 0
+URBAN = 1 #not flammable
+ALPINE = 2 #not flammable
+DESERT = 3 #not flammable
+SHRUB = 4  #not flammable at all
+MONTANE = 5 #2nd highest burn
+CHAPARRAL = 6 #highest burn
+CONIFEROUS = 7 #medium burn
+SCRUB = 8 #low burn
+
+#class for each frame of game board
+#each frame should be one pixel of map
+class Frame:
+    windspeed = 0
+    humidity = 0
+    elevation = 0
+    biome = 0
+    wind_direction = NE
+    status = GREEN
+    transition = FALSE
+    crowning = false
+    conditions = none
+
+
+
+#burns happen uphill
+
+
+
+
+#algorithm determines T and C
+
+
+
+#surface burn -slow fire : 
+
+
+def set_board(burnable):
+    windspeed = 5
+    wind_direction = NE;
+    humidity = 0;
+    new_board = np.zeros_like(game_board)
+
+
+    for x in range(game_board.shape[0]):
+        for y in range(game_board.shape[1]):    
+            game_board[x,y] = Frame()
+
+
+
+    for x in range(game_board.shape[0]):
+        for y in range(game_board.shape[1]):     
+
+            if (x == 0 and y == 0):
+                game_board[x,y].windspeed = 5
+                game_board[x+1,y+1].windspeed = 5
+                game_board[x+1,y].windspeed = 4
+                game_board[x, y+1].windspeed = 4
+                game_board[x, y].humidity = 1
+            else:
+                if(((x + xalt) < game_board.shape[0]) and 
+                    (x+xalt) > 0 and
+                    ((y + yalt) < game_board.shape[1]) and
+                    (y + yalt > 0)):
+                    if (game_board[x,y].windspeed != 0):
+                        game_board[x+1,y+1].windspeed = game_board[x,y].windspeed
+                        game_board[x+1,y].windspeed = game_board[x,y].windspeed - 1
+                        game_board[x, y+1].windspeed = game_board[x,y].windspeed - 1
+                        game_board[x, y].humidity = 1
+                        if((windspeed - humidity - biome) >0):
+                            crowning  = True
+                        else:
+                            crowning = False
+                        if((windspeed + elevation - biome) > 0):
+                            transition = True
+                        else:
+                            transition = False
+
+                        #T and C determines Movement
+
+                        #transition: fire moves up tree = more likely to move, medium/fast fire
+                        #crowning : move across frames
+                        #+T +C = moves super fast
+                        #+T  -C = full stop, stays in place until burns out with no wind or wind moves it 
+                        #-T -C =Surface Fire, very slow
+                        #-T +C = Medium, Normal
+
+                        if(transition and crowning):
+                            game_board[x, y].conditions = high
+                        elif(transition and not crowning):
+                            game_board[x, y].conditions = stop
+                        elif(not transition and crowning):
+                            game_board[x, y].conditions = medium
+                        elif(not transition and not crowning):
+                            game_board[x, y].conditions = slow
+
+
+
+def set_fire(game_board):
     '''
     Advances the game board using the given rules.
     Input: the initial game board.
@@ -77,7 +193,7 @@ def advance_board(game_board):
     '''
     
     # create a new array that's just like the original one, but initially set to all zeros (i.e., totally empty)
-    new_board = np.zeros_like(game_board)
+   
     
     # loop over each cell in the board and decide what to do.
     # You'll need two loops here, one nested inside the other.
@@ -146,9 +262,6 @@ def advance_board(game_board):
 
 
 
-
-
-
 # In[41]:
 
 # 
@@ -172,7 +285,7 @@ for i in range(100):
 
     # 
     board_size = 50
-    game_board = advance_board(game_board)
+    game_board = set_fire(game_board)
     
     # 
     plotgrid(game_board)
