@@ -22,7 +22,7 @@ import random
 
 
 
-green = Image.open("server/pixel2.png")  #rename to image
+green = Image.open("notebooks/california.png")  #rename to image
 
 
 
@@ -33,7 +33,14 @@ RED = (1,0,0)
 BLACK = (0,0,0)
 
 colorvector = np.vectorize(lambda g: 0 if g < threshold else g)
+
+redlayer = np.array(green)[:,:,0]
 greenlayer = np.array(green)[:,:,1]
+bluelayer = np.array(green)[:,:,2]
+for x in range(bluelayer.shape[0]):
+  for y in range(bluelayer.shape[1]):
+    if(bluelayer[x,y] > 130):
+      greenlayer[x,y] = 0
 burnable = colorvector(greenlayer)
 print(burnable)
 
@@ -146,9 +153,9 @@ def advance_board(greenlayer,redlayer):
 # 
 prob_tree=0.6
 board_size = 50
-
+dpi = 100
 #
-fig = plt.figure(figsize=(10,10))
+fig = plt.figure(figsize=(greenlayer.shape[0]/dpi,greenlayer.shape[1]/dpi),dpi=dpi*10)
 
 # 
 redlayer = np.zeros(greenlayer.shape)
