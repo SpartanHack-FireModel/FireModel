@@ -16,7 +16,7 @@ import time
 from PIL import Image
 
 
-
+import random
 
 
 
@@ -49,27 +49,39 @@ print(burnable)
 
 # Function plotgrid() does what?? I believe it was to build an array the random number generators would populate
 
-def plotgrid(myarray):
+def plotgrid(greenlayer,redlayer):
     
-    plt.imshow(myarray)
+    # Create the pixel array
+    combo = np.zeros((greenlayer.shape[0],greenlayer.shape[1],3))
+    # Iterate over the green and red arrays and set the pixels accordingly.
+    for x in range(greenlayer.shape[0]):
+      for y in range(greenlayer.shape[1]):
+        if(redlayer[x,y] == 0):
+          combo[x,y] = (0,greenlayer[x,y],0)
+        else:
+          combo[x,y] = (redlayer[x,y],0,0)
+
+    # display the pixel array
+    plt.imshow(combo)
+    #plt.imshow(redlayer)
     # 
-    plt.ylim([0,myarray.shape[0]]) 
-    plt.xlim([0,myarray.shape[1]])  #Defines the edges of our board
+    plt.ylim([0,greenlayer.shape[0]]) 
+    plt.xlim([0,greenlayer.shape[1]])  #Defines the edges of our board
 
     # 
     plt.tick_params(axis='both', which='both',  #I believe this is stylistic editing
                     bottom='off', top='off', left='off', right='off',
                     labelbottom='off', labelleft='off')
-    print(myarray)
+    plt.pause(.01)
     
-plotgrid(greenlayer)
-plt.show()
-exit()
+def getBurn(greenpixel):
+  # if greenpixel * random > 0
+  if(random.randint(1,255) < greenpixel):
+    return 1
 
+  return 0
 
-
-
-def advance_board(game_board):
+def advance_board(greenlayer,redlayer):
     '''
     Advances the game board using the given rules.
     Input: the initial game board.
@@ -77,51 +89,31 @@ def advance_board(game_board):
     '''
     
     # create a new array that's just like the original one, but initially set to all zeros (i.e., totally empty)
-    new_board = np.zeros_like(game_board)
-    
+    new_red = np.zeros_like(redlayer)
+    new_green = np.zeros_like(greenlayer)
+
     # loop over each cell in the board and decide what to do.
     # You'll need two loops here, one nested inside the other.
-    for x in range(game_board.shape[0]):
-        for y in range(game_board.shape[1]):
+    for x in range(greenlayer.shape[0]):
+        for y in range(greenlayer.shape[1]):
             
             # Check for each pixel to equal to the pixel constants
-            if(np.array_equal(game_board[x,y],BLACK)):
-                new_board[x,y] == BLACK
-                
-            if(np.array_equal(game_board[x,y],RED)):
-                new_board[x,y] == BLACK
-                
-            if(np.array_equal(game_board[x,y],GREEN)):
-                new_board[x,y] = GREEN
-                
-                if x > 0:
+            if(greenlayer[x,y] > 0):
+              new_green[x,y] = greenlayer[x,y]
+            if(redlayer[x,y] > 0):
+              new_green[x,y] = 0
+              new_red[x,y] = int(random.random() < .9)
+              for xalt in [-1,0,1]:
+                for yalt in [-1,0,1]:
+                  if((
+                    ((x + xalt) < greenlayer.shape[0]) and 
+                    (x+xalt) > 0 and
+                    ((y + yalt) < greenlayer.shape[1]) and
+                    (y + yalt > 0) and
+                    (getBurn(greenlayer[x+xalt,y+yalt])))):
+                      new_red[x+xalt,y+yalt] = 1
 
-                    if(np.array_equal(game_board[x-1,y] == RED)):
 
-                        new_board[x,y] = RED
-                        
-                        
-
-                if y > 0:
-
-                    if(np.array_equal(game_board[x,y-1],RED)):
-
-                        new_board[x,y] = RED
-
-                if x < game_board.shape[0]-1:
-
-                    if(np.array_equal(game_board[x+1,y],RED)):
-
-                        new_board[x,y] = RED
-
-                        
-
-                if y < game_board.shape[1]-1:                    
-
-                    if(np.array_equal(game_board[x,y+1],RED)):
-
-                        new_board[x,y] = RED
-                
             
     
             # Now that we're inside the loops we need to apply our rules
@@ -142,7 +134,7 @@ def advance_board(game_board):
                 
 
     # return the new board
-    return new_board
+    return new_green,new_red
 
 
 
@@ -159,10 +151,10 @@ board_size = 50
 fig = plt.figure(figsize=(10,10))
 
 # 
-game_board = gb
-gb[0] = [RED]*(len(gb[1]))
+redlayer = np.zeros(greenlayer.shape)
+redlayer[0] = [1]*(len(greenlayer[0]))
 # 
-plotgrid(game_board)
+plotgrid(greenlayer,redlayer)
 
 # 
 on_fire = True
@@ -172,10 +164,9 @@ for i in range(100):
 
     # 
     board_size = 50
-    game_board = advance_board(game_board)
-    
+    greenlayer,redlayer = advance_board(greenlayer,redlayer)
     # 
-    plotgrid(game_board)
+    plotgrid(greenlayer,redlayer)
     time.sleep(0.05)  # 
     clear_output(wait=True)
     display(fig)
