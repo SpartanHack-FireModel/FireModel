@@ -145,14 +145,19 @@ class Frame:
 
 #Assuming we can get RGB values, this is how we determine the biome for each pixel.
 def biome(RGB):
-	if RGB == (1, 174, 240) or (8, 155, 5):
-		return WATER
-	if RGB == (255, 188, 51):
-		return SCRUB
-	if RGB == (255, 155, 227) or (83, 137, 87):
-		return CONIFEROUS
-	if RGB == (254, 244, 1):
-		return GRASS
+    if np.array_equal(RGB, [0, 0, 0]) or np.array_equal(RGB, [8, 155, 8]) or np.array_equal(RGB, [163,73,164]) :
+        return WATER
+    if np.array_equal(RGB,[255,93,100]) or np.array_equal(RGB,[238,28,36]) or np.array_equal(RGB,[237,32,40]) or np.array_equal(RGB,[237,28,36]) or np.array_equal(RGB,[234,0,8]):
+        return SCRUB
+    if np.array_equal(RGB, [0, 64, 26]) or np.array_equal(RGB, [3,4,4]) or np.array_equal(RGB,[34,177,76]) or np.array_equal(RGB,[63, 72, 204]) or np.array_equal(RGB,[36,185,79]):
+        #print('coniferous')
+        return CONIFEROUS
+    if np.array_equal(RGB, [254, 244, 1]) or np.array_equal(RGB,[213,180,180]):
+        return MONTANE
+    if(np.array_equal(RGB,[63, 72, 204])):
+        return CHAPARRAL
+    #print(RGB)
+    return MONTANE
 
 #This is the dictionary of biome types, including their 4 associated variables.
 #0. Difficulty to set on fire
@@ -204,10 +209,7 @@ def set_board(game_board,biomeMap,heightMap,wind_direction=NE,humidity=0.5,eleva
             new_board[x,y].wind_direction = wind_direction
             new_board[x,y].humidity = humidity
             new_board[x,y].elevation = heightMap[x,y][1]
-            if(new_board[x,y].greenness < 100):
-                new_board[x,y].biome = SCRUB
-            else:
-                new_board[x,y].biome = WATER
+            new_board[x,y].biome = biome(biomeMap[x,y])
             new_board[x,y].crowning, new_board[x,y].transition = crowntransit(new_board[x,y].biome,elevation=new_board[x,y].elevation)
             new_board[x,y].conditions = getConditions(new_board[x,y].crowning, new_board[x,y].transition)
 
@@ -242,7 +244,9 @@ def canBurn(game_board,x_spot,y_spot):
 
 
 def spread(windspeed,delta_elevation, biome):
-    
+    if(biome == WATER):
+        #print('Water')
+        return False
     if(biome < 5):
         return False
     elif(biome == SCRUB):
@@ -277,7 +281,7 @@ WIND_LOOKUP = {
     E : [1,0]
 }
 def advance_board(game_board,wind_direction=NE,windspeed=2):
-    print('Dir',wind_direction,windspeed)
+    #print('Dir',wind_direction,windspeed)
     '''
     Advances the game board using the given rules.
     Input: the initial game board.
@@ -520,7 +524,7 @@ def advance_board(game_board,wind_direction=NE,windspeed=2):
 # In[41]:
 def stepSimulation(game_board,frames,humidity,windspeed,winddir):
     if(frames > 0):
-        print('Wind direction',winddir)
+        #print('Wind direction',winddir)
         for x in range(5):
             game_board = advance_board(game_board,wind_direction=int(winddir),windspeed=int(windspeed))
         frames = frames + 1
