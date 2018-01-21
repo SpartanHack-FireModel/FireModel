@@ -103,27 +103,28 @@ body{
 #form-wrap{
   width: 25%;
   display: inline-block;
-  margin: 2.5% 0 0 10%;
+  margin: 0 0 0 10%;
   /**border: solid 2px #e3a857;**/
   vertical-align: middle;
+  margin-top: 1.5%;s
 }
 #form-wrap h2{
-  text-align: center;
+  text-align: right;
   font-family: aileron-b;
   color: #fff9f2;
   font-size: 3vw;
   padding-bottom: 4%;
   width: 65%;
-  margin: 0 auto 4% auto;
+  margin: 0 auto 4% 30%;
   border-bottom: 2px solid #e3a857;
 }
 #form-wrap div{
-  text-align: center;
+  text-align: right ;
 }
 #form-wrap div h3{
   display: inline-block;
   width: auto;
-  text-align: center;
+  text-align: right;
   color: #fff9f2;
   font-size: 2vw;
   vertical-align: middle;
@@ -133,10 +134,10 @@ body{
 #form-wrap div input[type=number]{
   background-color: rgba(0,0,0,0);
   border: solid 2px rgba(255,249,242,.75);
-  width: 25%;
+  width: 30%;
   display: inline-block;
-  text-align: center;
-  vertical-align: middle;
+  text-align: right;
+  vertical-align: top;
   font-size: 2vw;
   margin: 2% 5% 2% 2%;
   font-family: aileron;
@@ -149,15 +150,24 @@ body{
   border: solid 3px #e3a857;
   outline: none;
 }
-
+#form-wrap form input[type=submit]{
+  padding: 0;
+  border: none;
+}
 #fire-simulation-wrap{
   width: 40%;
   display: inline-block;
-  vertical-align: middle;
+  vertical-align: top;
+  margin-left: 10%;
+  margin-top: 1.5%;
 }
-
-
-
+#fire-simulation-wrap h2{
+  font-family: aileron-b;
+  color: #fff9f2;
+  font-size: 3vw;
+  padding-bottom: 2.75%;
+  border-bottom: 2px solid #e3a857;
+}
 #resources-wrap{
   display: none;
 }

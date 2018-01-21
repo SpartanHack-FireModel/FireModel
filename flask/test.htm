@@ -5,6 +5,7 @@
   <link rel="stylesheet" type="text/css" href="test.css" />
   <link rel="stylesheet" type="text/css" href="reset.css" />
   <title>Up in Smoke</title>
+  <link rel="shortcut icon" type="image/ico" href="imgs/favicon.ico"/>
 </head>
 
 <body>
@@ -15,9 +16,7 @@
     </div>
 
     <div id="text-wrap">
-      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus egestas, tortor non elementum pulvinar, neque nisi fringilla eros, sed hendrerit mi massa eget metus. Aliquam nisi nisi, feugiat vel ornare et, rhoncus eu magna. Etiam a quam ac ipsum
-        consectetur interdum et vel sapien. Pellentesque congue sapien eget dui pharetra, quis placerat nulla dignissim. Morbi imperdiet dictum nibh eget porta. Morbi suscipit dolor non libero ullamcorper, eget congue sem mattis. Aenean sit amet maximus
-        ex.
+      <p>This is a time-model on the effect of wildfires in the state of California. Using this model, you can select many of the variables that most affect the time and course that wild fires may take in different circumstances. Other factors are set into the map, such as elevation and regional biome. Your job is to set the variable, click the starting point of the fire on the map, and click "Ignite!" Watch as the fire travels along, spreading quickly through some areas and completely ignoring others. We hope that such a model will one day help civilians evacuate and aid firefighters in organizing a response.
       </p>
     </div>
   </div>
@@ -28,17 +27,17 @@
 
     <form id="entryForm">
       <div class="input-wrap">
-        <h3>Variable 1:</h3
+        <h3>Wind Speed:</h3
         ><input type="number">
       </div>
 
       <div class="input-wrap">
-        <h3>Variable 2:</h3
+        <h3>Wind Direction:</h3
         ><input type="number">
       </div>
 
       <div class="input-wrap">
-        <h3>Variable 3:</h3
+        <h3>Humidity:</h3
         ><input type="number">
       </div>
 
@@ -51,15 +50,19 @@
         <h3>Variable 5:</h3
         ><input type="number">
       </div>
+
+      <input type="submit" value=""><img src="imgs/submit.svg"></input>
     </form>
   </div>
 
 
   <div id="fire-simulation-wrap">
-    <canvas id="board" width="500px" height="500px"></canvas>
+    <div id="simulation-title-wrap">
+      <h2>Fire spread prediction</h1>
+    </div>
 
-    <div id="slider-wrap">
-      <h3>Frame</h3>
+    <div id="data-wrap">
+      <canvas id="board" width="500px" height="500px"></canvas>
       <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
     </div>
   </div>
