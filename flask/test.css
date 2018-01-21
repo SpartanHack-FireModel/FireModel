@@ -61,6 +61,7 @@ html {
 
 body{
   background-color: rgba(40,40,40,.95);
+  min-height: 100vh;
 }
 
 #title-wrap{
@@ -74,7 +75,7 @@ body{
     text-align: center;
     vertical-align: middle;
     display: inline-block;
-    margin: 4% 0 0 4%;
+    margin: 6% 0 0 6%;
 }
 #title-wrap img{
     width: 15%;
@@ -88,7 +89,7 @@ body{
   width: 100%;
   border-top: solid 2px #e3a857;
   border-bottom: solid 2px #e3a857;
-  margin-top: 2%;
+  /**margin-top: 2%;**/
 }
 #text-wrap p{
   font-family: aileron-l;
@@ -104,6 +105,7 @@ body{
   display: inline-block;
   margin: 2.5% 0 0 10%;
   /**border: solid 2px #e3a857;**/
+  vertical-align: middle;
 }
 #form-wrap h2{
   text-align: center;
@@ -148,9 +150,33 @@ body{
   outline: none;
 }
 
+#fire-simulation-wrap{
+  width: 40%;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+
+
+#resources-wrap{
+  display: none;
+}
+#footer{
+  text-align: center;
+  padding-bottom: 3%;
+  margin-top: 3%;
+}
 #footer p{
   display: inline-block;
+  color: #c1c1c1;
+  font-family: aileron;
+  font-size: 2.75vw;
+  vertical-align: middle;
+  margin-right: .5%;
 }
 #footer img{
   display: inline-block;
+  width: 5%;
+  vertical-align: middle;
+  margin-left: .5%;
 }

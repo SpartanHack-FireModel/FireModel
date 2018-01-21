@@ -4,6 +4,7 @@
 <head>
   <link rel="stylesheet" type="text/css" href="test.css" />
   <link rel="stylesheet" type="text/css" href="reset.css" />
+  <title>Up in Smoke</title>
 </head>
 
 <body>
@@ -21,6 +22,7 @@
     </div>
   </div>
 
+  <div id="form/map wrap">
   <div id="form-wrap">
     <h2>Advance</h2>
 
@@ -54,14 +56,14 @@
 
 
   <div id="fire-simulation-wrap">
-    <canvas id="board"></canvas>
+    <canvas id="board" width="500px" height="500px"></canvas>
 
     <div id="slider-wrap">
       <h3>Frame</h3>
       <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
     </div>
   </div>
-
+</div>
 
 
   <div id="resources-wrap">
@@ -81,8 +83,10 @@
   </div>
 
   <div id="footer">
-    <p>Created in 36 hours at Spartahack IV</p>
-    <img src="imgs/spartahack.svg">
+    <a href="https://spartahack.com" target="_blank">
+      <p>Created in 36 hours at Spartahack IV</p>
+      <img src="imgs/spartahack.svg">
+    </a>
   </div>
 
   <script>
