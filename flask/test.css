@@ -102,16 +102,55 @@ body{
 #form-wrap{
   width: 25%;
   display: inline-block;
+  margin: 2.5% 0 0 10%;
   /**border: solid 2px #e3a857;**/
+}
+#form-wrap h2{
+  text-align: center;
+  font-family: aileron-b;
+  color: #fff9f2;
+  font-size: 3vw;
+  padding-bottom: 4%;
+  width: 65%;
+  margin: 0 auto 4% auto;
+  border-bottom: 2px solid #e3a857;
+}
+#form-wrap div{
+  text-align: center;
 }
 #form-wrap div h3{
   display: inline-block;
-  width: 75%;
-  text-align: left;
+  width: auto;
+  text-align: center;
+  color: #fff9f2;
+  font-size: 2vw;
+  vertical-align: middle;
+  margin: 2% 2% 2% 2%;
+  font-family: aileron;
 }
 #form-wrap div input[type=number]{
   background-color: rgba(0,0,0,0);
   border: solid 2px rgba(255,249,242,.75);
-  width: 24%;
+  width: 25%;
+  display: inline-block;
+  text-align: center;
+  vertical-align: middle;
+  font-size: 2vw;
+  margin: 2% 5% 2% 2%;
+  font-family: aileron;
+  color: #2d2d2d;
+}
+#form-wrap div input[type=number]:hover,
+#form-wrap div input[type=number]:active,
+#form-wrap div input[type=number]:focus{
+  background-color: rgba(255,249,242,.75);
+  border: solid 3px #e3a857;
+  outline: none;
+}
+
+#footer p{
+  display: inline-block;
+}
+#footer img{
   display: inline-block;
 }
