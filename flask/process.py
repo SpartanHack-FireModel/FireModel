@@ -16,16 +16,18 @@ import time
 from PIL import Image
 
 import random
+from multiprocessing import Process
 
 
 
 
 
+mapImg = Image.open("../notebooks/map_crop.png")  #rename to image
+biomeImg = Image.open("../notebooks/biome_crop.png") 
+heightImg = Image.open("../notebooks/height_crop.png") 
 
-green = Image.open("../notebooks/california.png")  #rename to image
-
-
-
+biomeImg = np.array(biomeImg)
+heightImg = np.array(heightImg)
 threshold = 70  #Minimum green value for a space to be burnable
 
 GREEN = (0,1,0)
@@ -33,7 +35,8 @@ RED = (1,0,0)
 BLACK = (0,0,0)
 
 colorvector = np.vectorize(lambda g: 0 if g < threshold else g)
-greenlayer = np.array(green)[:,:,1]
+mapVec = np.array(mapImg)
+greenlayer = np.array(mapImg)[:,:,1]
 burnable = colorvector(greenlayer)
 
 # gb = np.zeros((green.size[0], green.size[1],3))
@@ -108,7 +111,8 @@ def plotgrid(myarray,frameNumber):
                 else:
                     imgData[x,y] = (1,0,0)
             else:
-                imgData[x,y] = (0,myarray[x,y].greenness,0)
+                imgData[x,y] = mapVec[x,y][:-1]/255
+    imgData = np.flip(imgData,0)
     plt.imshow(imgData)
     # 
     plt.ylim([0,imgData.shape[0]]) 
@@ -157,24 +161,27 @@ def biome(RGB):
 #2. Scaling factor for humidity
 #3. Scaling factor for elevatio
 
-def crowntransit(biome,windspeed=5,humidity=0.5,elevation=100):
+def crowntransit(biome,windspeed=5,humidity=5,elevation=100):
 
 
-	BIDICT = {
-	WATER: (-1000, 0, 0, 0), 
-	SCRUB: (100, 10, -10, 5),
-	}
+    BIDICT = {
+    WATER: (-1, 0, 0, 5), 
+    SCRUB: (0.1, 1, -1, .5),
+    MONTANE:(0.6,0.5,-3,1),
+    CONIFEROUS:(0.4,0.5,-3,4),
+    CHAPARRAL:(0.8,1,-2,1)
+    }
 
-	if((BIDICT[biome][0] + BIDICT[biome][1]* windspeed - BIDICT[biome][2]* humidity) >0):
-		crowning = True
-	else:
-		crowning = False
+    if((BIDICT[biome][0] + BIDICT[biome][1]* windspeed - BIDICT[biome][2]* humidity) >0):
+        crowning = True
+    else:
+        crowning = False
 
-	if((BIDICT[biome][0] - BIDICT[biome][3]* elevation + BIDICT[biome][1]* windspeed) >0):
-		transiting = True
-	else:
-		transiting = False
-	return (crowning, transiting)
+    if((BIDICT[biome][0] - BIDICT[biome][3]* elevation + BIDICT[biome][1]* windspeed) >0):
+        transiting = True
+    else:
+        transiting = False
+    return (crowning, transiting)
 
 
 
@@ -187,7 +194,7 @@ def crowntransit(biome,windspeed=5,humidity=0.5,elevation=100):
 #surface burn -slow fire : 
 
 
-def set_board(game_board,wind_direction=NE,humidity=0.5,elevation=100):
+def set_board(game_board,biomeMap,heightMap,wind_direction=NE,humidity=0.5,elevation=100):
     new_board = np.empty(game_board.shape,dtype=object)
 
 
@@ -197,19 +204,18 @@ def set_board(game_board,wind_direction=NE,humidity=0.5,elevation=100):
             new_board[x,y].greenness = game_board[x,y]
             new_board[x,y].wind_direction = wind_direction
             new_board[x,y].humidity = humidity
-            new_board[x,y].elevation = elevation
+            new_board[x,y].elevation = heightMap[x,y][1]
             if(new_board[x,y].greenness < 100):
                 new_board[x,y].biome = SCRUB
             else:
                 new_board[x,y].biome = WATER
-            new_board[x,y].crowning, new_board[x,y].transition = crowntransit(new_board[x,y].biome)
+            new_board[x,y].crowning, new_board[x,y].transition = crowntransit(new_board[x,y].biome,elevation=new_board[x,y].elevation)
             new_board[x,y].conditions = getConditions(new_board[x,y].crowning, new_board[x,y].transition)
 
     return new_board
 
 
 def getConditions(crowning, transition):
-    return LOW
     if(crowning and transition):
         return HIGH
     if(crowning and not transition):
@@ -236,6 +242,34 @@ def canBurn(game_board,x_spot,y_spot):
     return 0
 
 
+def spread(windspeed,delta_elevation, biome):
+    
+    if(biome < 5):
+        return False
+    elif(biome == SCRUB):
+        b = -0.2
+    elif(biome == CONIFEROUS):
+        b = 0
+    elif(biome == MONTANE):
+        b = 0.1
+    elif(biome == CHAPARRAL):
+        b = 0.2
+
+    if(delta_elevation >0):
+        e = 0.2
+    elif(delta_elevation <0):
+        e = -0.2
+    else:
+        e = 0
+    probability = 0.5 + 0.1* windspeed + e + b
+    if probability <0:
+        return False
+    else:
+        x = random.randint(1, 100)
+        if(x<= probability *100):
+            return True
+        else:
+            return False
 
 WIND_LOOKUP = {
     N : [0,1],
@@ -260,203 +294,201 @@ def advance_board(game_board,wind_direction=NE,windspeed=2):
             
             # Check for each pixel to equal to the pixel constants
             if(game_board[x,y].current_status in burned):
+                game_board[x,y].burn_count +=1
                 if(game_board[x,y].current_status == BURNING):
                     # game_board[x,y].new_status = SMOLDERING
 
                     if(wind_direction == N):
                         if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
-
-                            if(canBurn(game_board,x, y+1)):
-                                if(game_board[x, y+1].current_status not in burned):
-                                    game_board[x, y+1].new_status = BURNING
+                            if(spread(game_board[x, y+1].windspeed, game_board[x, y].elevation - game_board[x, y+1].elevation, game_board[x, y+1].biome) and
+                             (game_board[x, y+1].current_status not in burned)):
+                                game_board[x, y+1].new_status = BURNING
                         if(game_board[x,y].conditions in [HIGH, MEDIUM]):
-                            if(canBurn(game_board,x+1, y+1)):
-                                if(game_board[x+1, y+1].current_status not in burned):
+                            if(spread(game_board[x+1, y+1].windspeed, game_board[x, y].elevation - game_board[x+1, y+1].elevation, game_board[x+1, y+1].biome) and
+                             (game_board[x+1, y+1].current_status not in burned)):
                                     game_board[x+1, y+1].new_status = BURNING
-                            if(canBurn(game_board,x-1, y+1)):
-                                if(game_board[x-1, y+1].current_status not in burned):
+                            if(spread(game_board[x-1, y+1].windspeed, game_board[x, y].elevation - game_board[x-1, y+1].elevation, game_board[x-1, y+1].biome) and
+                             (game_board[x-1, y+1].current_status not in burned)):
                                     game_board[x-1, y+1].new_status = BURNING
                         if(game_board[x,y].conditions is HIGH):
-                            if(canBurn(game_board,x, y+2)):
-                                if(game_board[x, y+2].current_status not in burned):
+                            if(spread(game_board[x, y+2].windspeed, game_board[x, y].elevation - game_board[x, y+2].elevation, game_board[x, y+2].biome) and
+                             (game_board[x, y+2].current_status not in burned)):
                                     game_board[x, y+2].new_status = BURNING
-                            if(canBurn(game_board,x-1, y+2)):
-                                if(game_board[x-1, y+2].current_status not in burned):
+                            if(spread(game_board[x-1, y+2].windspeed, game_board[x, y].elevation - game_board[x-1, y+2].elevation, game_board[x-1, y+2].biome) and
+                             (game_board[x-1, y+2].current_status not in burned)):
                                     game_board[x-1, y+2].new_status = BURNING
-                            if(canBurn(game_board,x+1, y+2)):
-                                if(game_board[x+1, y+2].current_status not in burned):
+                            if(spread(game_board[x+1, y+2].windspeed, game_board[x, y].elevation - game_board[x+1, y+2].elevation, game_board[x+1, y+2].biome) and
+                             (game_board[x+1, y+2].current_status not in burned)):
                                     game_board[x+1, y+2].new_status = BURNING
 
-                    if(wind_direction == NE):
+                    elif(wind_direction == NE):
                         if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
-                            if(canBurn(game_board,x+1, y+1)):
-                                if(game_board[x+1, y+1].current_status not in burned):
+                            if(spread(game_board[x+1, y+1].windspeed, game_board[x, y].elevation - game_board[x+1, y+1].elevation, game_board[x+1, y+1].biome) and
+                             (game_board[x+1, y+1].current_status not in burned)):
                                     game_board[x+1, y+1].new_status = BURNING
                         if(game_board[x,y].conditions in [HIGH, MEDIUM]):
-                            if(canBurn(game_board,x, y+1)):
-                                if(game_board[x, y+1].current_status not in burned):
+                            if(spread(game_board[x, y+1].windspeed, game_board[x, y].elevation - game_board[x, y+1].elevation, game_board[x, y+1].biome) and
+                             (game_board[x, y+1].current_status not in burned)):
                                     game_board[x, y+1].new_status = BURNING
-                            if(canBurn(game_board,x+1, y)):
-                                if(game_board[x+1, y].current_status not in burned):
+                            if(spread(game_board[x+1, y].windspeed, game_board[x, y].elevation - game_board[x+1, y].elevation, game_board[x+1, y].biome) and
+                             (game_board[x+1, y].current_status not in burned)):
                                     game_board[x+1, y].new_status = BURNING
                         if(game_board[x,y].conditions == HIGH):
-                            if(canBurn(game_board,x+2, y+2)):
-                                if(game_board[x+2, y+2].current_status not in burned):
+                            if(spread(game_board[x+2, y+2].windspeed, game_board[x, y].elevation - game_board[x+2, y+2].elevation, game_board[x+2, y+2].biome) and
+                             (game_board[x+2, y+2].current_status not in burned)):
                                     game_board[x+2, y+2].new_status = BURNING
-                            if(canBurn(game_board,x, y+2)):
-                                if(game_board[x, y+2].current_status not in burned):
+                            if(spread(game_board[x, y+2].windspeed, game_board[x, y].elevation - game_board[x, y+2].elevation, game_board[x, y+2].biome) and
+                             (game_board[x, y+2].current_status not in burned)):
                                     game_board[x, y+2].new_status = BURNING
-                            if(canBurn(game_board,x+2, y)):
-                                if(game_board[x+2, y].current_status not in burned):
+                            if(spread(game_board[x+2, y].windspeed, game_board[x, y].elevation - game_board[x+2, y].elevation, game_board[x+2, y].biome) and
+                             (game_board[x+2, y].current_status not in burned)):
                                     game_board[x+2, y].new_status = BURNING
 
-                    if(wind_direction == E):
+                    elif(wind_direction == E):
                         if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
-                            if(canBurn(game_board,x+1, y)):
-                                if(game_board[x+1, y].current_status not in burned):
+                            if(spread(game_board[x+1, y].windspeed, game_board[x, y].elevation - game_board[x+1, y].elevation, game_board[x+1, y].biome) and
+                             (game_board[x+1, y].current_status not in burned)):
                                     game_board[x+1, y].new_status = BURNING
                         if(game_board[x,y].conditions in [HIGH, MEDIUM]):
-                            if(canBurn(game_board,x+1, y+1)):
-                                if(game_board[x+1, y+1].current_status not in burned):
+                            if(spread(game_board[x+1, y+1].windspeed, game_board[x, y].elevation - game_board[x+1, y+1].elevation, game_board[x+1, y+1].biome) and
+                             (game_board[x+1, y+1].current_status not in burned)):
                                     game_board[x+1, y+1].new_status = BURNING
-                            if(canBurn(game_board,x+1, y)):
-                                if(game_board[x+1, y-1].current_status not in burned):
+                            if(spread(game_board[x+1, y-1].windspeed, game_board[x, y].elevation - game_board[x+1, y-1].elevation, game_board[x+1, y-1].biome) and
+                             (game_board[x+1, y-1].current_status not in burned)):
                                     game_board[x+1, y-1].new_status = BURNING
                         if(game_board[x,y].conditions == HIGH):
-                            if(canBurn(game_board,x+2, y+2)):
-                                if(game_board[x+2, y+1].current_status not in burned):
+                            if(spread(game_board[x+2, y+1].windspeed, game_board[x, y].elevation - game_board[x+2, y+1].elevation, game_board[x+2, y+1].biome) and
+                             (game_board[x+2, y+1].current_status not in burned)):
                                     game_board[x+2, y+1].new_status = BURNING
-                            if(canBurn(game_board,x, y+2)):
-                                if(game_board[x+2, y-1].current_status not in burned):
+                            if(spread(game_board[x+2, y-1].windspeed, game_board[x, y].elevation - game_board[x+2, y-1].elevation, game_board[x+2, y-1].biome) and
+                             (game_board[x+2, y-1].current_status not in burned)):
                                     game_board[x+2, y-1].new_status = BURNING
-                            if(canBurn(game_board,x+2, y)):
-                                if(game_board[x+2, y].current_status not in burned):
+                            if(spread(game_board[x+2, y].windspeed, game_board[x, y].elevation - game_board[x+2, y].elevation, game_board[x+2, y].biome) and
+                             (game_board[x+2, y].current_status not in burned)):
                                     game_board[x+2, y].new_status = BURNING
 
-                    if(wind_direction == SE):
+                    elif(wind_direction == SE):
                         if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
-                            if(canBurn(game_board,x+1, y-1)):
-                                if(game_board[x+1, y-1].current_status not in burned):
+                            if(spread(game_board[x+1, y-1].windspeed, game_board[x, y].elevation - game_board[x+1, y-1].elevation, game_board[x+1, y-1].biome) and
+                             (game_board[x+1, y-1].current_status not in burned)):
                                     game_board[x+1, y-1].new_status = BURNING
                         if(game_board[x,y].conditions in [HIGH, MEDIUM]):
-                            if(canBurn(game_board,x, y-1)):
-                                if(game_board[x, y-1].current_status not in burned):
+                            if(spread(game_board[x, y-1].windspeed, game_board[x, y-1].elevation - game_board[x, y-1].elevation, game_board[x, y-1].biome) and
+                             (game_board[x, y-1].current_status not in burned)):
                                     game_board[x, y-1].new_status = BURNING
-                            if(canBurn(game_board,x+1, y)):
-                                if(game_board[x+1, y-1].current_status not in burned):
+                            if(spread(game_board[x+1, y-1].windspeed, game_board[x, y].elevation - game_board[x+1, y-1].elevation, game_board[x+1, y-1].biome) and
+                             (game_board[x+1, y-1].current_status not in burned)):
                                     game_board[x+1, y-1].new_status = BURNING
                         if(game_board[x,y].conditions == HIGH):
-                            if(canBurn(game_board,x+2, y-2)):
-                                if(game_board[x+2, y-2].current_status not in burned):
+                            if(spread(game_board[x+2, y-2].windspeed, game_board[x, y].elevation - game_board[x+2, y-2].elevation, game_board[x+2, y-2].biome) and
+                             (game_board[x+2, y-2].current_status not in burned)):
                                     game_board[x+2, y-2].new_status = BURNING
-                            if(canBurn(game_board,x, y-2)):
-                                if(game_board[x, y-2].current_status not in burned):
+                            if(spread(game_board[x, y-2].windspeed, game_board[x, y].elevation - game_board[x, y-2].elevation, game_board[x, y-2].biome) and
+                             (game_board[x, y-2].current_status not in burned)):
                                     game_board[x, y-2].new_status = BURNING
-                            if(canBurn(game_board,x+2, y)):
-                                if(game_board[x+2, y].current_status not in burned):
+                            if(spread(game_board[x+2, y].windspeed, game_board[x, y].elevation - game_board[x+2, y].elevation, game_board[x+2, y].biome) and
+                             (game_board[x+2, y].current_status not in burned)):
                                     game_board[x+2, y].new_status = BURNING                            
 
 
-                    if(wind_direction == S):
+                    elif(wind_direction == S):
                         if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
-                            if(canBurn(game_board,x, y-1)):
-                                if(game_board[x, y-1].current_status not in burned):
+                            if(spread(game_board[x, y-1].windspeed, game_board[x, y].elevation - game_board[x, y-1].elevation, game_board[x, y-1].biome) and
+                             (game_board[x, y-1].current_status not in burned)):
                                     game_board[x, y-1].new_status = BURNING
                         if(game_board[x,y].conditions in [HIGH, MEDIUM]):
-                            if(canBurn(game_board,x-1, y-1)):
-                                if(game_board[x-1, y-1].current_status not in burned):
+                            if(spread(game_board[x-1, y-1].windspeed, game_board[x, y].elevation - game_board[x-1, y-1].elevation, game_board[x-1, y-1].biome) and
+                             (game_board[x-1, y-1].current_status not in burned)):
                                     game_board[x-1, y-1].new_status = BURNING
-                            if(canBurn(game_board,x+1, y-1)):
-                                if(game_board[x+1, y-1].current_status not in burned):
+                            if(spread(game_board[x+1, y-1].windspeed, game_board[x, y].elevation - game_board[x+1, y-1].elevation, game_board[x+1, y-1].biome) and
+                             (game_board[x+1, y-1].current_status not in burned)):
                                     game_board[x+1, y-1].new_status = BURNING
                         if(game_board[x,y].conditions == HIGH):
-                            if(canBurn(game_board,x+1, y-2)):
-                                if(game_board[x+1, y-2].current_status not in burned):
+                            if(spread(game_board[x+1, y-2].windspeed, game_board[x, y].elevation - game_board[x+1, y-2].elevation, game_board[x+1, y-2].biome) and
+                             (game_board[x+1, y-2].current_status not in burned)):
                                     game_board[x+1, y-2].new_status = BURNING
-                            if(canBurn(game_board,x, y-2)):
-                                if(game_board[x, y-2].current_status not in burned):
+                            if(spread(game_board[x, y-2].windspeed, game_board[x, y].elevation - game_board[x, y-2].elevation, game_board[x, y-2].biome) and
+                             (game_board[x, y-2].current_status not in burned)):
                                     game_board[x, y-2].new_status = BURNING
-                            if(canBurn(game_board,x-1, y-2)):
-                                if(game_board[x-1, y-2].current_status not in burned):
+                            if(spread(game_board[x-1, y-2].windspeed, game_board[x, y].elevation - game_board[x-1, y-2].elevation, game_board[x-1, y-2].biome) and
+                             (game_board[x-1, y-2].current_status not in burned)):
                                     game_board[x-1, y-2].new_status = BURNING 
 
-                    if(wind_direction == SW):
+                    elif(wind_direction == SW):
                         if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
-                            if(canBurn(game_board,x-1, y-1)):
-                                if(game_board[x-1, y-1].current_status not in burned):
+                            if(spread(game_board[x-1, y-1].windspeed, game_board[x, y].elevation - game_board[x-1, y-1].elevation, game_board[x-1, y-1].biome) and
+                             (game_board[x-1, y-1].current_status not in burned)):
                                     game_board[x-1, y-1].new_status = BURNING
                         if(game_board[x,y].conditions in [HIGH, MEDIUM]):
-                            if(canBurn(game_board,x, y-1)):
-                                if(game_board[x, y-1].current_status not in burned):
+                            if(spread(game_board[x, y-1].windspeed, game_board[x, y].elevation - game_board[x, y-1].elevation, game_board[x, y-1].biome) and
+                             (game_board[x, y-1].current_status not in burned)):
                                     game_board[x, y-1].new_status = BURNING
-                            if(canBurn(game_board,x-1, y)):
-                                if(game_board[x-1, y].current_status not in burned):
+                            if(spread(game_board[x-1, y].windspeed, game_board[x, y].elevation - game_board[x-1, y].elevation, game_board[x-1, y].biome) and
+                             (game_board[x-1, y].current_status not in burned)):
                                     game_board[x-1, y].new_status = BURNING
                         if(game_board[x,y].conditions == HIGH):
-                            if(canBurn(game_board,x-2, y-2)):
-                                if(game_board[x-2, y-2].current_status not in burned):
+                            if(spread(game_board[x-2, y-2].windspeed, game_board[x, y].elevation - game_board[x-2, y-2].elevation, game_board[x-2, y-2].biome) and
+                             (game_board[x-2, y-2].current_status not in burned)):
                                     game_board[x-2, y-2].new_status = BURNING
-                            if(canBurn(game_board,x, y-2)):
-                                if(game_board[x, y-2].current_status not in burned):
+                            if(spread(game_board[x, y-2].windspeed, game_board[x, y].elevation - game_board[x, y-2].elevation, game_board[x, y-2].biome) and
+                             (game_board[x, y-2].current_status not in burned)):
                                     game_board[x, y-2].new_status = BURNING
-                            if(canBurn(game_board,x-2, y)):
-                                if(game_board[x-2, y].current_status not in burned):
+                            if(spread(game_board[x-2, y].windspeed, game_board[x, y].elevation - game_board[x-2, y].elevation, game_board[x-2, y].biome) and
+                             (game_board[x-2, y].current_status not in burned)):
                                     game_board[x-2, y].new_status = BURNING 
 
-                    if(wind_direction == W):
+                    elif(wind_direction == W):
                         if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
-                            if(canBurn(game_board,x-1, y)):
-                                if(game_board[x-1, y].current_status not in burned):
+                            if(spread(game_board[x-1, y].windspeed, game_board[x, y].elevation - game_board[x-1, y].elevation, game_board[x-1, y].biome) and
+                             (game_board[x-1, y].current_status not in burned)):
                                     game_board[x-1, y].new_status = BURNING
                         if(game_board[x,y].conditions in [HIGH, MEDIUM]):
-                            if(canBurn(game_board,x-1, y-1)):
-                                if(game_board[x-1, y-1].current_status not in burned):
+                            if(spread(game_board[x-1, y-1].windspeed, game_board[x, y].elevation - game_board[x-1, y-1].elevation, game_board[x-1, y-1].biome) and
+                             (game_board[x-1, y-1].current_status not in burned)):
                                     game_board[x-1, y-1].new_status = BURNING
-                            if(canBurn(game_board,x-1, y+1)):
-                                if(game_board[x-1, y+1].current_status not in burned):
+                            if(spread(game_board[x-1, y+1].windspeed, game_board[x, y].elevation - game_board[x-1, y+1].elevation, game_board[x-1, y+1].biome) and
+                             (game_board[x-1, y+1].current_status not in burned)):
                                     game_board[x-1, y+1].new_status = BURNING
                         if(game_board[x,y].conditions == HIGH):
-                            if(canBurn(game_board,x-2, y-1)):
-                                if(game_board[x-2, y-1].current_status not in burned):
+                            if(spread(game_board[x-2, y-1].windspeed, game_board[x, y].elevation - game_board[x-2, y-1].elevation, game_board[x-2, y-1].biome) and
+                             (game_board[x-2, y-1].current_status not in burned)):
                                     game_board[x-2, y-1].new_status = BURNING
-                            if(canBurn(game_board,x-2, y-2)):
-                                if(game_board[x-2, y+1].current_status not in burned):
+                            if(spread(game_board[x-2, y+1].windspeed, game_board[x, y].elevation - game_board[x-2, y+1].elevation, game_board[x-2, y+1].biome) and
+                             (game_board[x-2, y+1].current_status not in burned)):
                                     game_board[x-2, y+1].new_status = BURNING
-                            if(canBurn(game_board,x-2, y)):
-                                if(game_board[x-2, y].current_status not in burned):
+                            if(spread(game_board[x-2, y].windspeed, game_board[x, y].elevation - game_board[x-2, y].elevation, game_board[x-2, y].biome) and
+                             (game_board[x-2, y].current_status not in burned)):
                                     game_board[x-2, y].new_status = BURNING 
 
                     else: #NW
                         if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
-                            if(canBurn(game_board,x-1, y+1)):
-                                if(game_board[x-1, y+1].current_status not in burned):
+                            if(spread(game_board[x-1, y+1].windspeed, game_board[x, y].elevation - game_board[x-1, y+1].elevation, game_board[x-1, y+1].biome) and
+                             (game_board[x-1, y+1].current_status not in burned)):
                                     game_board[x-1, y+1].new_status = BURNING
                         if(game_board[x,y].conditions in [HIGH, MEDIUM]):
-                            if(canBurn(game_board,x-1, y)):
-                                if(game_board[x-1, y].current_status not in burned):
+                            if(spread(game_board[x-1, y].windspeed, game_board[x, y].elevation - game_board[x-1, y].elevation, game_board[x-1, y].biome) and
+                             (game_board[x-1, y].current_status not in burned)):
                                     game_board[x-1, y].new_status = BURNING
-                            if(canBurn(game_board,x, y+1)):
-                                if(game_board[x, y+1].current_status not in burned):
+                            if(spread(game_board[x, y+1].windspeed, game_board[x, y].elevation - game_board[x, y+1].elevation, game_board[x, y+1].biome) and
+                             (game_board[x, y+1].current_status not in burned)):
                                     game_board[x, y+1].new_status = BURNING
                         if(game_board[x,y].conditions == HIGH):
-                            if(canBurn(game_board,x-2, y+2)):
-                                if(game_board[x-2, y+2].current_status not in burned):
+                            if(spread(game_board[x-2, y+2].windspeed, game_board[x, y].elevation - game_board[x-2, y+2].elevation, game_board[x-2, y+2].biome) and
+                             (game_board[x-2, y+2].current_status not in burned)):
                                     game_board[x-2, y+2].new_status = BURNING
-                            if(canBurn(game_board,x-2, y)):
-                                if(game_board[x-2, y].current_status not in burned):
+                            if(spread(game_board[x-2, y].windspeed, game_board[x, y].elevation - game_board[x-2, y].elevation, game_board[x-2, y].biome) and
+                             (game_board[x-2, y].current_status not in burned)):
                                     game_board[x-2, y].new_status = BURNING
-                            if(canBurn(game_board,x, y+2)):
-                                if(game_board[x, y+2].current_status not in burned):
+                            if(spread(game_board[x, y+2].windspeed, game_board[x, y].elevation - game_board[x, y+2].elevation, game_board[x, y+2].biome) and
+                             (game_board[x, y+2].current_status not in burned)):
                                     game_board[x, y+2].new_status = BURNING 
 
 
-                if(game_board[x,y].current_status == BURNING):
-                    game_board[x,y].burn_count +=1
 
-                if(game_board[x,y].burn_count == 5):
+                if(game_board[x,y].burn_count == 10):
                     game_board[x,y].new_status = SMOLDERING
 
-                if(game_board[x,y].burn_count == 8):
+                if(game_board[x,y].burn_count == 30):
                     game_board[x,y].new_status = BURNT
             
     
@@ -486,7 +518,7 @@ def advance_board(game_board,wind_direction=NE,windspeed=2):
 
 
 # In[41]:
-def runSimulation():
+def runSimulation(flashPoint):
     # 
     prob_tree=0.6
     board_size = 50
@@ -495,9 +527,10 @@ def runSimulation():
     fig = plt.figure(figsize=(10,10))
 
     # 
-    game_board = set_board(burnable)
-    for x in range(len(game_board[0])-1):
-        game_board[0][x].current_status = BURNING
+    game_board = set_board(burnable,biomeImg,heightImg)
+    for x in [-1,0,1]:
+        for y in [-1,0,1]:
+            game_board[flashPoint['x']+x,flashPoint['y']+y].current_status = BURNING
     # 
     #plotgrid(game_board)
 
@@ -510,11 +543,11 @@ def runSimulation():
     on_fire = True
     
     # Use a lovely for loop instead of a while loop
-    for i in range(30):
-        for x in range(10):
+    for i in range(100):
+        for x in range(1):
             game_board = advance_board(game_board,wind_direction=wind_direction)
-
-        wind_direction= random.choice([N,S,W,E,NW,NE,SW,SE])
+        #random.seed()
+        #wind_direction= random.choice([N,S,W,E,NW,NE,SW,SE])
         # save the game board with the frame number
         plotgrid(game_board,i+1)
              

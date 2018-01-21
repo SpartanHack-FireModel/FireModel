@@ -17,7 +17,11 @@ def hello_world():
   return json.dumps(args)
 @app.route('/test')
 def test():
-  runSimulation()
+  fp = {
+  'x':50,
+  'y':60
+  }
+  runSimulation(fp)
   return '1'
   
 @app.route('/imgs/<path:sess>/<path:path>')
