@@ -15,7 +15,11 @@ def hello_world():
   'Subdir' : 'example'
   }
   return json.dumps(args)
-
+@app.route('/test')
+def test():
+  runSimulation()
+  return '1'
+  
 @app.route('/imgs/<path:sess>/<path:path>')
 def imgResp(sess,path):
   url = './imgs/' + sess + '/' + path

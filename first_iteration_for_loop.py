@@ -184,6 +184,7 @@ def set_board(burnable):
             game_board[x,y].wind_direction = wind_direction
             game_board[x,y].humidity = humidity
             game_board[x,y].elevation = elevation
+            game_board[x,y].biome = CONIFEROUS
             game_board[x,y].crowning, game_board[x,y].transition = crowntransit(game_board[x,y].biome)
             game_board[x,y].conditions = getConditions(game_board[x,y].crowning, game_board[x,y].transition)
 
