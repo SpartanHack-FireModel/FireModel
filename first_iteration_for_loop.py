@@ -148,8 +148,11 @@ def crowntransit(biome):
 
 
 	BIDICT = {
-	'WATER': (-1000, 0, 0, 0), 
-	'SCRUB': (100, 10, -10, 5),
+	'WATER': (-1, 0, 0, 5), 
+	'SCRUB': (0.1, 1, -1, .5),
+	'MONTANE':(0.6,0.5,-3,1),
+	'CONIFEROUS':(0.4,0.5,-3,4)
+	'CHAPARRAL':(0.8,1,-2,1)
 	}
 
 	if((BIDICT[biome][0] + BIDICT[biome][1]* windspeed - BIDICT[biome][2]* humidity) >0):
@@ -214,6 +217,34 @@ def canBurn(x_spot,y_spot):
     return 0
 
 
+def spread(windspeed,delta_elevation, biome):
+	
+	if(biome < 5):
+		return False
+	elif(biome == SCRUB):
+		b = -0.2
+	elif(biome == CONIFEROUS):
+		b = 0
+	elif(biome == MONTANE):
+		b = 0.1
+	elif(biome == CHAPARRAL):
+		b = 0.2
+
+	if(delta_elevation >0):
+		e = 0.2
+	elif(delta_elevation <0):
+		e = -0.2
+	else:
+		e = 0
+	probability = 0.5 + 0.1* windspeed + e + b
+	if probability <0:
+		return False
+	else:
+		x = random.randint(1, 100)
+    	if(x<= probability *100):
+        	return True
+    	else:
+        	return False
 
 
 def advance_board(game_board):
@@ -242,9 +273,9 @@ def advance_board(game_board):
 
                     if(wind_direction == N):
                         if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x, y+1)):
-                                if(game_board[x, y+1].current_status not in burned):
-                                    game_board[x, y+1].new_status = BURNING
+                        	if(spread(game_board[x, y+1].windspeed, game_board[x, y].elevation - game_board[x, y+1].elevation, game_board[x, y+1].biome) and
+                        	 (game_board[x, y+1].current_status not in burned)):
+                            	game_board[x, y+1].new_status = BURNING
                         if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
                             if(canBurn(x+1, y+1)):
                                 if(game_board[x+1, y+1].current_status not in burned):
@@ -263,7 +294,7 @@ def advance_board(game_board):
                                 if(game_board[x+1, y+2].current_status not in burned):
                                     game_board[x+1, y+2].new_status = BURNING
 
-                    if(wind_direction == NE):
+                    elif(wind_direction == NE):
                         if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
                             if(canBurn(x+1, y+1)):
                                 if(game_board[x+1, y+1].current_status not in burned):
@@ -286,7 +317,7 @@ def advance_board(game_board):
                                 if(game_board[x+2, y].current_status not in burned):
                                     game_board[x+2, y].new_status = BURNING
 
-                    if(wind_direction == E):
+                    elif(wind_direction == E):
                         if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
                             if(canBurn(x+1, y)):
                                 if(game_board[x+1, y].current_status not in burned):
@@ -309,7 +340,7 @@ def advance_board(game_board):
                                 if(game_board[x+2, y].current_status not in burned):
                                     game_board[x+2, y].new_status = BURNING
 
-                    if(wind_direction == SE):
+                    elif(wind_direction == SE):
                         if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
                             if(canBurn(x+1, y-1)):
                                 if(game_board[x+1, y-1].current_status not in burned):
@@ -333,7 +364,7 @@ def advance_board(game_board):
                                     game_board[x+2, y].new_status = BURNING                            
 
 
-                    if(wind_direction == S):
+                    elif(wind_direction == S):
                         if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
                             if(canBurn(x, y-1)):
                                 if(game_board[x, y-1].current_status not in burned):
@@ -356,7 +387,7 @@ def advance_board(game_board):
                                 if(game_board[x-1, y-2].current_status not in burned):
                                     game_board[x-1, y-2].new_status = BURNING 
 
-                    if(wind_direction == SW):
+                    elif(wind_direction == SW):
                         if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
                             if(canBurn(x-1, y-1)):
                                 if(game_board[x-1, y-1].current_status not in burned):
@@ -379,7 +410,7 @@ def advance_board(game_board):
                                 if(game_board[x-2, y].current_status not in burned):
                                     game_board[x-2, y].new_status = BURNING 
 
-                    if(wind_direction == W):
+                    elif(wind_direction == W):
                         if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
                             if(canBurn(x-1, y)):
                                 if(game_board[x-1, y].current_status not in burned):
@@ -463,9 +494,7 @@ def advance_board(game_board):
 
 # In[41]:
 
-# 
-prob_tree=0.6
-board_size = 50
+
 
 #
 fig = plt.figure(figsize=(10,10))
