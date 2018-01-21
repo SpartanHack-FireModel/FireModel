@@ -112,17 +112,16 @@ def plotgrid(myarray,frameNumber):
                     imgData[x,y] = (1,0,0)
             else:
                 imgData[x,y] = mapVec[x,y][:-1]/255
-    imgData = np.flip(imgData,0)
-    plt.imshow(imgData)
-    # 
-    plt.ylim([0,imgData.shape[0]]) 
-    plt.xlim([0,imgData.shape[1]])  #Defines the edges of our board
 
-    # 
-    plt.tick_params(axis='both', which='both',  #I believe this is stylistic editing
-                    bottom='off', top='off', left='off', right='off',
-                    labelbottom='off', labelleft='off')
-    plt.savefig('imgs/example/frame_' + str(frameNumber) + '.png')
+    #    imgData = np.flip(imgData,0)
+    fig = plt.figure(frameon=False)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    ax.xaxis.set_visible(False)
+    ax.yaxis.set_visible(False)
+    fig.add_axes(ax)
+    ax.imshow(imgData)
+    fig.savefig('imgs/example/frame_' + str(frameNumber) + '.png',bbox_inches='tight', pad_inches=0)
     
 
 #class for each frame of game board
@@ -518,7 +517,15 @@ def advance_board(game_board,wind_direction=NE,windspeed=2):
 
 
 # In[41]:
-def runSimulation(flashPoint):
+def stepSimulation(game_board,frames,humidity,windspeed,winddir):
+    if(frames > 0):
+        for x in range(5):
+            game_board = advance_board(game_board,wind_direction=winddir,windspeed=windspeed)
+        frames = frames + 1
+        plotgrid(game_board,frames)
+        return frames,game_board
+
+def runSimulation(flashPoint,humidity,windspeed,winddir):
     # 
     prob_tree=0.6
     board_size = 50
@@ -530,7 +537,7 @@ def runSimulation(flashPoint):
     game_board = set_board(burnable,biomeImg,heightImg)
     for x in [-1,0,1]:
         for y in [-1,0,1]:
-            game_board[flashPoint['x']+x,flashPoint['y']+y].current_status = BURNING
+            game_board[int(flashPoint['x'])+x,int(flashPoint['y'])+y].current_status = BURNING
     # 
     #plotgrid(game_board)
 
@@ -541,15 +548,17 @@ def runSimulation(flashPoint):
 
     # 
     on_fire = True
-    
+    frames = 0
     # Use a lovely for loop instead of a while loop
-    for i in range(100):
-        for x in range(1):
-            game_board = advance_board(game_board,wind_direction=wind_direction)
+    for i in range(1):
+        for x in range(5):
+            game_board = advance_board(game_board,wind_direction=winddir,windspeed=windspeed)
         #random.seed()
         #wind_direction= random.choice([N,S,W,E,NW,NE,SW,SE])
         # save the game board with the frame number
-        plotgrid(game_board,i+1)
+        frames = frames + 1
+        plotgrid(game_board,frames)
+    return frames,game_board
              
 
 

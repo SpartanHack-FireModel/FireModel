@@ -5,7 +5,7 @@
   <link rel="stylesheet" type="text/css" href="test.css" />
   <link rel="stylesheet" type="text/css" href="reset.css" />
   <title>Up in Smoke</title>
-  <link rel="shortcut icon" type="image/ico" href="imgs/favicon.ico"/>
+  <link rel="shortcut icon" type="image/ico" href="imgs/favicon.ico" />
 </head>
 
 <body>
@@ -14,44 +14,43 @@
       <h1>Up in Smoke </h1>
       <img src="imgs/flame.svg">
     </div>
-
     <div id="text-wrap">
       <p>This is a time-model on the effect of wildfires in the state of California. Using this model, you can select many of the variables that most affect the time and course that wild fires may take in different circumstances. Other factors are set into the map, such as elevation and regional biome. Your job is to set the variable, click the starting point of the fire on the map, and click "Ignite!" Watch as the fire travels along, spreading quickly through some areas and completely ignoring others. We hope that such a model will one day help civilians evacuate and aid firefighters in organizing a response.
       </p>
     </div>
   </div>
-
   <div id="form/map wrap">
-  <div id="form-wrap">
-    <h2>Advance</h2>
-
-    <form id="entryForm">
-      <div class="input-wrap">
-        <h3>Wind Speed:</h3
-        ><input type="number">
+    <div id="form-wrap">
+      <h2>Advance</h2>
+      <form id="entryForm" action="">
+        <div class="input-wrap">
+          <h3>Wind Speed:</h3
+        ><input type="number" id="windSpeed">
       </div>
 
       <div class="input-wrap">
         <h3>Wind Direction:</h3
-        ><input type="number">
+        ><select id="windDir">
+          <option value="1">North</option>
+        </select>
       </div>
 
       <div class="input-wrap">
         <h3>Humidity:</h3
-        ><input type="number">
+        ><input type="number" id="humidity">
       </div>
 
       <div class="input-wrap">
-        <h3>Variable 4:</h3
-        ><input type="number">
+        <h3>Star X:</h3
+        ><input type="number" disabled="disabled" id="startX" value="30">
       </div>
 
       <div class="input-wrap">
-        <h3>Variable 5:</h3
-        ><input type="number">
+        <h3>Start Y:</h3
+        ><input type="number" disabled="disabled" id="startY" value="30">
       </div>
 
-      <input type="submit" value=""><img src="imgs/submit.svg"></input>
+      <input type="submit" value=""><img src="imgs/submit.svg" onclick="execute()" height="100" width="100"> <img src="imgs/submit.svg" onclick="step()" height="100" width="100"></input>
     </form>
   </div>
 
@@ -62,7 +61,8 @@
     </div>
 
     <div id="data-wrap">
-      <canvas id="board" width="500px" height="500px"></canvas>
+      <canvas id="board" width="440px" height="440px" onclick="handleClick"></canvas>
+      </br>
       <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
     </div>
   </div>
@@ -93,21 +93,23 @@
   </div>
 
   <script>
-    const server = "http://35.22.93.201:5000/startsimulation";
+    const server = "http://127.0.0.1:5000/";
     let frames = 0;
     let sub = '';
     let curFrame = 0;
-
+    const canvas = document.getElementById('board');
     function displayImage(subDir, frameNumber) {
-      const canvas = document.getElementById('board').getContext('2d');
+      let con = canvas.getContext('2d');
       console.log('Getting image');
       const img = new Image();
-      img.src = `http://35.22.93.201:5000/imgs/${subDir}/frame_${frameNumber}.png`;
+      img.src = `${server}imgs/${subDir}/frame_${frameNumber}.png`;
       img.onload = () => {
-        canvas.drawImage(img, 0, 0);
+        con.drawImage(img, 0, 0);
       };
     }
-
+    function handleClick(event){
+      console.log(event.offsetX,event.offsetY);
+    }
     const slider = document.getElementById('myRange');
     slider.onchange = () => {
       displayImage(sub, slider.value);
@@ -115,8 +117,17 @@
 
     function execute() {
       // Call the flask server
+      let obj = {
+        'start' : {
+          'y' : document.getElementById('startX').value,
+          'x' : document.getElementById('startY').value
+        },
+        'windSpeed' : document.getElementById('windSpeed').value,
+        'windDir' : document.getElementById('windDir').value,
+        'humidity' : document.getElementById('humidity').value  
+      };
       var xhr = new XMLHttpRequest();
-      xhr.open('POST', server, true);
+      xhr.open('POST', `${server}startsimulation`, true);
       xhr.setRequestHeader("Content-Type", "application/json");
       xhr.onload = function(e) {
         if (this.status == 200) {
@@ -133,10 +144,57 @@
         }
       };
 
-      xhr.send(JSON.stringify({
-        'test': 1
-      }));
+      xhr.send(JSON.stringify(obj));
+
     }
+    function step(){
+      // Call the flask server
+      let obj = {
+        'start' : {
+          'y' : document.getElementById('startX').value,
+          'x' : document.getElementById('startY').value
+        },
+        'windSpeed' : document.getElementById('windSpeed').value,
+        'windDir' : document.getElementById('windDir').value,
+        'humidity' : document.getElementById('humidity').value  
+      };
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', `${server}stepsimulation`, true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onload = function(e) {
+        if (this.status == 200) {
+          console.log(this.responseText);
+          const jsObj = JSON.parse(this.responseText);
+          frames = jsObj.Frames;
+          sub = jsObj.Subdir;
+
+          slider.min = 1;
+          slider.max = frames;
+          // setInterval(loopImages,1000);
+          displayImage(jsObj.Subdir, frames);
+          slider.value = 1;
+        }
+      };
+
+      xhr.send(JSON.stringify(obj));
+
+    }
+    displayImage('example',0);
+    function getMousePos(canvas, event) {
+        var rect = canvas.getBoundingClientRect();
+        return {
+          x: event.clientX - rect.left,
+          y: event.clientY - rect.top
+        };
+      }
+
+    canvas.addEventListener('click', function(event) {
+        var mousePos = getMousePos(canvas, event);
+        var message = 'Mouse position: ' + mousePos.x + ',' + mousePos.y;
+        document.getElementById('startX').value = Math.round(mousePos.x);
+        document.getElementById('startY').value = Math.round(mousePos.y);
+        console.log(message);
+      }, false);
   </script>
 </body>
 
