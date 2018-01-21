@@ -14,6 +14,8 @@ def hello_world():
 
 @app.route('/imgs/<path:sess>/<path:path>')
 def imgResp(sess,path):
+  sess = sess.replace('..','')
+  path = path.replace('..','')
   url = './imgs/' + sess + '/' + path
   print('Looking for',url)
   if(os.path.isfile(url)):
