@@ -1,0 +1,117 @@
+/*reckless*/
+@font-face {
+  font-family: "reckless";
+  src: url("./fonts/Reckless.eot"); /* IE9 Compat Modes */
+  src: url("./fonts/Reckless.eot?#iefix") format("embedded-opentype"), /* IE6-IE8 */
+    url("./fonts/Reckless.otf") format("opentype"), /* Open Type Font */
+    url("./fonts/Reckless.svg") format("svg"), /* Legacy iOS */
+    url("./fonts/Reckless.ttf") format("truetype"), /* Safari, Android, iOS */
+    url("./fonts/Reckless.woff") format("woff"), /* Modern Browsers */
+    url("./fonts/Reckless.woff2") format("woff2"); /* Modern Browsers */
+  font-weight: normal;
+  font-style: normal;
+}
+/*aileron-b*/
+@font-face {
+  font-family: "aileron-b";
+  src: url("./fonts/Aileron-Bold.eot"); /* IE9 Compat Modes */
+  src: url("./fonts/Aileron-Bold.eot?#iefix") format("embedded-opentype"), /* IE6-IE8 */
+    url("./fonts/Aileron-Bold.otf") format("opentype"), /* Open Type Font */
+    url("./fonts/Aileron-Bold.svg") format("svg"), /* Legacy iOS */
+    url("./fonts/Aileron-Bold.ttf") format("truetype"), /* Safari, Android, iOS */
+    url("./fonts/Aileron-Bold.woff") format("woff"), /* Modern Browsers */
+    url("./fonts/Aileron-Bold.woff2") format("woff2"); /* Modern Browsers */
+  font-weight: normal;
+  font-style: normal;
+}
+/*aileron*/
+@font-face {
+  font-family: "aileron";
+  src: url("./fonts/Aileron-Regular.eot"); /* IE9 Compat Modes */
+  src: url("./fonts/Aileron-Regular.eot?#iefix") format("embedded-opentype"), /* IE6-IE8 */
+    url("./fonts/Aileron-Regular.otf") format("opentype"), /* Open Type Font */
+    url("./fonts/Aileron-Regular.svg") format("svg"), /* Legacy iOS */
+    url("./fonts/Aileron-Regular.ttf") format("truetype"), /* Safari, Android, iOS */
+    url("./fonts/Aileron-Regular.woff") format("woff"), /* Modern Browsers */
+    url("./fonts/Aileron-Regular.woff2") format("woff2"); /* Modern Browsers */
+  font-weight: normal;
+  font-style: normal;
+}
+/*aileron-l*/
+@font-face {
+  font-family: "aileron-l";
+  src: url("./fonts/Aileron-Light.eot"); /* IE9 Compat Modes */
+  src: url("./fonts/Aileron-Light.eot?#iefix") format("embedded-opentype"), /* IE6-IE8 */
+    url("./fonts/Aileron-Light.otf") format("opentype"), /* Open Type Font */
+    url("./fonts/Aileron-Light.svg") format("svg"), /* Legacy iOS */
+    url("./fonts/Aileron-Light.ttf") format("truetype"), /* Safari, Android, iOS */
+    url("./fonts/Aileron-Light.woff") format("woff"), /* Modern Browsers */
+    url("./fonts/Aileron-Light.woff2") format("woff2"); /* Modern Browsers */
+  font-weight: normal;
+  font-style: normal;
+}
+
+html {
+  background: url(imgs/bg.jpg) no-repeat center center fixed;
+  -webkit-background-size: cover;
+  -moz-background-size: cover;
+  -o-background-size: cover;
+  background-size: cover;
+}
+
+body{
+  background-color: rgba(40,40,40,.95);
+}
+
+#title-wrap{
+  width: 40%;
+  margin: 0 auto 0 auto;
+}
+#title-wrap h1{
+    font-size: 8vw;
+    font-family: reckless;
+    color: #fff9f2;
+    text-align: center;
+    vertical-align: middle;
+    display: inline-block;
+    margin: 4% 0 0 4%;
+}
+#title-wrap img{
+    width: 15%;
+    text-align: center;
+    vertical-align: middle;
+    display: inline-block;
+    margin: 0 4% 0 0;
+}
+
+#text-wrap{
+  width: 100%;
+  border-top: solid 2px #e3a857;
+  border-bottom: solid 2px #e3a857;
+  margin-top: 2%;
+}
+#text-wrap p{
+  font-family: aileron-l;
+  font-size: 1.25em;
+  width: 75%;
+  margin: 0 auto 0 auto;
+  padding: 1% 0 1% 0;
+  text-align: center;
+  color: #f4f0eb;
+}
+#form-wrap{
+  width: 25%;
+  display: inline-block;
+  /**border: solid 2px #e3a857;**/
+}
+#form-wrap div h3{
+  display: inline-block;
+  width: 75%;
+  text-align: left;
+}
+#form-wrap div input[type=number]{
+  background-color: rgba(0,0,0,0);
+  border: solid 2px rgba(255,249,242,.75);
+  width: 24%;
+  display: inline-block;
+}

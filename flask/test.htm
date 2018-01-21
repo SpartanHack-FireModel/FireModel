@@ -2,63 +2,134 @@
 <html>
 
 <head>
+  <link rel="stylesheet" type="text/css" href="test.css" />
+  <link rel="stylesheet" type="text/css" href="reset.css" />
 </head>
 
 <body>
-<div id="container" align="center">
-<span>Fire Simulation</span>
-<br/>
-  <canvas id="board" width="500px" height="500px"></canvas>
-  <br/>
-  <label for="myRange">Frame</label>
-  <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
-  <form id="entryForm">
+  <div id="intro">
+    <div id="title-wrap">
+      <h1>Up in Smoke </h1>
+      <img src="imgs/flame.svg">
+    </div>
 
-  </form>
+    <div id="text-wrap">
+      <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vivamus egestas, tortor non elementum pulvinar, neque nisi fringilla eros, sed hendrerit mi massa eget metus. Aliquam nisi nisi, feugiat vel ornare et, rhoncus eu magna. Etiam a quam ac ipsum
+        consectetur interdum et vel sapien. Pellentesque congue sapien eget dui pharetra, quis placerat nulla dignissim. Morbi imperdiet dictum nibh eget porta. Morbi suscipit dolor non libero ullamcorper, eget congue sem mattis. Aenean sit amet maximus
+        ex.
+      </p>
+    </div>
   </div>
+
+  <div id="form-wrap">
+    <h2>Advance:</h2>
+
+    <form id="entryForm">
+      <div class="input-wrap">
+        <h3>Variable 1:</h3
+        ><input type="number">
+      </div>
+
+      <div class="input-wrap">
+        <h3>Variable 2:</h3
+        ><input type="number">
+      </div>
+
+      <div class="input-wrap">
+        <h3>Variable 3:</h3
+        ><input type="number">
+      </div>
+
+      <div class="input-wrap">
+        <h3>Variable 4:</h3
+        ><input type="number">
+      </div>
+
+      <div class="input-wrap">
+        <h3>Variable 5:</h3
+        ><input type="number">
+      </div>
+    </form>
+  </div>
+
+
+  <div id="fire-simulation-wrap">
+    <canvas id="board"></canvas>
+
+    <div id="slider-wrap">
+      <h3>Frame</h3>
+      <input type="range" min="1" max="100" value="50" class="slider" id="myRange">
+    </div>
+  </div>
+
+
+
+  <div id="resources-wrap">
+    <div id="resources">
+      <div id="exit-wrap">
+        <img src="imgs/exit.svg">
+      </div>
+
+      <ul>
+        <a href="#" target=_blank>Link 1</a>
+        <a href="#" target=_blank>Link 1</a>
+        <a href="#" target=_blank>Link 1</a>
+        <a href="#" target=_blank>Link 1</a>
+        <a href="#" target=_blank>Link 1</a>
+        <ul>
+    </div>
+  </div>
+
+  <div id="footer">
+    <p>Created in 36 hours at Spartahack IV</p>
+    <img src="imgs/spartahack.svg">
+  </div>
+
   <script>
-  const server = "http://127.0.0.1:5000/startsimulation";
-  let frames = 0;
-  let sub = '';
-  let curFrame = 0;
-  function displayImage(subDir, frameNumber) {
-    const canvas = document.getElementById('board').getContext('2d');
-    console.log('Getting image');
-    const img = new Image();
-    img.src = `http://127.0.0.1:5000/imgs/${subDir}/frame_${frameNumber}.png`;
-    img.onload = () => {
-      canvas.drawImage(img, 0, 0);
-    };
-  }
+    const server = "http://35.22.93.201:5000/startsimulation";
+    let frames = 0;
+    let sub = '';
+    let curFrame = 0;
 
-  const slider = document.getElementById('myRange');
-  slider.onchange = ()=>{
-    displayImage(sub,slider.value);
-  };
+    function displayImage(subDir, frameNumber) {
+      const canvas = document.getElementById('board').getContext('2d');
+      console.log('Getting image');
+      const img = new Image();
+      img.src = `http://35.22.93.201:5000/imgs/${subDir}/frame_${frameNumber}.png`;
+      img.onload = () => {
+        canvas.drawImage(img, 0, 0);
+      };
+    }
 
-  function execute() {
-    // Call the flask server
-    var xhr = new XMLHttpRequest();
-    xhr.open('POST', server, true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.onload = function (e) {
-      if (this.status == 200) {
-        console.log(this.responseText);
-        const jsObj = JSON.parse(this.responseText);
-        frames = jsObj.Frames;
-        sub = jsObj.Subdir;
-        
-        slider.min = 1;
-        slider.max = frames;
-        // setInterval(loopImages,1000);
-         displayImage(jsObj.Subdir, 1);
-         slider.value = 1;
-      }
+    const slider = document.getElementById('myRange');
+    slider.onchange = () => {
+      displayImage(sub, slider.value);
     };
 
-    xhr.send(JSON.stringify({ 'test': 1 }));
-  }
+    function execute() {
+      // Call the flask server
+      var xhr = new XMLHttpRequest();
+      xhr.open('POST', server, true);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.onload = function(e) {
+        if (this.status == 200) {
+          console.log(this.responseText);
+          const jsObj = JSON.parse(this.responseText);
+          frames = jsObj.Frames;
+          sub = jsObj.Subdir;
 
+          slider.min = 1;
+          slider.max = frames;
+          // setInterval(loopImages,1000);
+          displayImage(jsObj.Subdir, 1);
+          slider.value = 1;
+        }
+      };
+
+      xhr.send(JSON.stringify({
+        'test': 1
+      }));
+    }
   </script>
 </body>
 
