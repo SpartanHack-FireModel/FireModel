@@ -27,11 +27,17 @@
           <h3>Wind Speed:</h3
         ><input type="number" id="windSpeed">
       </div>
-
       <div class="input-wrap">
         <h3>Wind Direction:</h3
         ><select id="windDir">
-          <option value="1">North</option>
+          <option value="7">North</option>
+          <option value="8">North East</option>
+          <option value="1">East</option>
+          <option value="2">South East</option>
+          <option value="3">South</option>
+          <option value="4">South West</option>
+          <option value="5">West</option>
+          <option value="6">North West</option>
         </select>
       </div>
 
@@ -138,6 +144,7 @@
 
           slider.min = 1;
           slider.max = frames;
+          slider.value = frames
           // setInterval(loopImages,1000);
           displayImage(jsObj.Subdir, 1);
           slider.value = 1;
@@ -170,6 +177,7 @@
 
           slider.min = 1;
           slider.max = frames;
+          slider.value = frames;
           // setInterval(loopImages,1000);
           displayImage(jsObj.Subdir, frames);
           slider.value = 1;

@@ -277,6 +277,7 @@ WIND_LOOKUP = {
     E : [1,0]
 }
 def advance_board(game_board,wind_direction=NE,windspeed=2):
+    print('Dir',wind_direction,windspeed)
     '''
     Advances the game board using the given rules.
     Input: the initial game board.
@@ -519,8 +520,9 @@ def advance_board(game_board,wind_direction=NE,windspeed=2):
 # In[41]:
 def stepSimulation(game_board,frames,humidity,windspeed,winddir):
     if(frames > 0):
+        print('Wind direction',winddir)
         for x in range(5):
-            game_board = advance_board(game_board,wind_direction=winddir,windspeed=windspeed)
+            game_board = advance_board(game_board,wind_direction=int(winddir),windspeed=int(windspeed))
         frames = frames + 1
         plotgrid(game_board,frames)
         return frames,game_board
@@ -538,21 +540,12 @@ def runSimulation(flashPoint,humidity,windspeed,winddir):
     for x in [-1,0,1]:
         for y in [-1,0,1]:
             game_board[int(flashPoint['x'])+x,int(flashPoint['y'])+y].current_status = BURNING
-    # 
-    #plotgrid(game_board)
 
-    windspeed = 5
-    wind_direction = NE;
-    humidity = 0;
-    elevation = 7;
-
-    # 
-    on_fire = True
     frames = 0
     # Use a lovely for loop instead of a while loop
     for i in range(1):
         for x in range(5):
-            game_board = advance_board(game_board,wind_direction=winddir,windspeed=windspeed)
+            game_board = advance_board(game_board,wind_direction=int(winddir),windspeed=int(windspeed))
         #random.seed()
         #wind_direction= random.choice([N,S,W,E,NW,NE,SW,SE])
         # save the game board with the frame number
