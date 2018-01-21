@@ -15,14 +15,14 @@ import time
 
 from PIL import Image
 
+import random
 
 
 
 
 
 
-
-green = Image.open("server/pixel2.png")  #rename to image
+green = Image.open("../notebooks/california.png")  #rename to image
 
 
 
@@ -48,20 +48,6 @@ burnable = colorvector(greenlayer)
 
 # Function plotgrid() does what?? I believe it was to build an array the random number generators would populate
 
-def plotgrid(myarray):
-    
-    plt.imshow(myarray)
-    # 
-    plt.ylim([0,myarray.shape[0]]) 
-    plt.xlim([0,myarray.shape[1]])  #Defines the edges of our board
-
-    # 
-    plt.tick_params(axis='both', which='both',  #I believe this is stylistic editing
-                    bottom='off', top='off', left='off', right='off',
-                    labelbottom='off', labelleft='off')
-    
-    
-    plotgrid(greenlayer)
 
 
 
@@ -94,7 +80,7 @@ burned = [BURNING, BURNT, SMOLDERING]
 STOP = 0
 LOW = 1
 MEDIUM = 2
-[HIGH] = 3
+HIGH = 3
 
 
 #biomes
@@ -103,10 +89,37 @@ URBAN = 1 #not flammable
 ALPINE = 2 #not flammable
 DESERT = 3 #not flammable
 SHRUB = 4  #not flammable at all
-MONTANE = 5 #2nd [HIGH]est burn
-CHAPARRAL = 6 #[HIGH]est burn
+MONTANE = 5 #2nd HIGHest burn
+CHAPARRAL = 6 #HIGHest burn
 CONIFEROUS = 7 #medium burn
 SCRUB = 8 #low burn
+
+def plotgrid(myarray,frameNumber):
+    
+    imgData = np.zeros((myarray.shape[0],myarray.shape[1],3))
+    for x in range(myarray.shape[0]):
+        for y in range(myarray.shape[1]):
+            if(myarray[x,y].current_status in burned):
+
+                if(myarray[x,y].current_status == BURNT):
+                    imgData[x,y] = (0,0,0)
+                elif(myarray[x,y].current_status == SMOLDERING):
+                    imgData[x,y] = (.75,.25,.25)
+                else:
+                    imgData[x,y] = (1,0,0)
+            else:
+                imgData[x,y] = (0,myarray[x,y].greenness,0)
+    plt.imshow(imgData)
+    # 
+    plt.ylim([0,imgData.shape[0]]) 
+    plt.xlim([0,imgData.shape[1]])  #Defines the edges of our board
+
+    # 
+    plt.tick_params(axis='both', which='both',  #I believe this is stylistic editing
+                    bottom='off', top='off', left='off', right='off',
+                    labelbottom='off', labelleft='off')
+    plt.savefig('imgs/example/frame_' + str(frameNumber) + '.png')
+    
 
 #class for each frame of game board
 #each frame should be one pixel of map
@@ -144,12 +157,12 @@ def biome(RGB):
 #2. Scaling factor for humidity
 #3. Scaling factor for elevatio
 
-def crowntransit(biome):
+def crowntransit(biome,windspeed=5,humidity=0.5,elevation=100):
 
 
 	BIDICT = {
-	'WATER': (-1000, 0, 0, 0), 
-	'SCRUB': (100, 10, -10, 5),
+	WATER: (-1000, 0, 0, 0), 
+	SCRUB: (100, 10, -10, 5),
 	}
 
 	if((BIDICT[biome][0] + BIDICT[biome][1]* windspeed - BIDICT[biome][2]* humidity) >0):
@@ -174,26 +187,31 @@ def crowntransit(biome):
 #surface burn -slow fire : 
 
 
-def set_board(burnable):
-    new_board = np.zeros_like(game_board)
+def set_board(game_board,wind_direction=NE,humidity=0.5,elevation=100):
+    new_board = np.empty(game_board.shape,dtype=object)
 
 
-    for x in range(game_board.shape[0]):
-        for y in range(game_board.shape[1]):    
-            game_board[x,y] = Frame()
-            game_board[x,y].wind_direction = wind_direction
-            game_board[x,y].humidity = humidity
-            game_board[x,y].elevation = elevation
-            game_board[x,y].biome = CONIFEROUS
-            game_board[x,y].crowning, game_board[x,y].transition = crowntransit(game_board[x,y].biome)
-            game_board[x,y].conditions = getConditions(game_board[x,y].crowning, game_board[x,y].transition)
+    for x in range(new_board.shape[0]):
+        for y in range(new_board.shape[1]):    
+            new_board[x,y] = Frame()
+            new_board[x,y].greenness = game_board[x,y]
+            new_board[x,y].wind_direction = wind_direction
+            new_board[x,y].humidity = humidity
+            new_board[x,y].elevation = elevation
+            if(new_board[x,y].greenness < 100):
+                new_board[x,y].biome = SCRUB
+            else:
+                new_board[x,y].biome = WATER
+            new_board[x,y].crowning, new_board[x,y].transition = crowntransit(new_board[x,y].biome)
+            new_board[x,y].conditions = getConditions(new_board[x,y].crowning, new_board[x,y].transition)
 
-    return game_board
+    return new_board
 
 
 def getConditions(crowning, transition):
+    return LOW
     if(crowning and transition):
-        return [HIGH]
+        return HIGH
     if(crowning and not transition):
         return MEDIUM
     if(not crowning and transition):
@@ -208,15 +226,24 @@ def getBurn(greenpixel):
 
   return 0
 
-def canBurn(x_spot,y_spot):
+def canBurn(game_board,x_spot,y_spot):
+    if(game_board.shape[0] <= x_spot  or
+        game_board.shape[1] <= y_spot or
+        x_spot < 0 or y_spot < 0):
+        return 0
     if (game_board[x_spot,y_spot].biome >=5):
         return 1
     return 0
 
 
 
-
-def advance_board(game_board):
+WIND_LOOKUP = {
+    N : [0,1],
+    S : [0,-1],
+    W : [-1,0],
+    E : [1,0]
+}
+def advance_board(game_board,wind_direction=NE,windspeed=2):
     '''
     Advances the game board using the given rules.
     Input: the initial game board.
@@ -232,207 +259,205 @@ def advance_board(game_board):
         for y in range(game_board.shape[1]):
             
             # Check for each pixel to equal to the pixel constants
-            if(game_board[x,y] > 0):
-                new_green[x,y] = game_board[x,y]
-            if(redlayer[x,y] > 0):
-                new_green[x,y] = 0
-                new_red[x,y] = int(random.random() < .9)
-                if(current_status == (BURNING)):
-                    burn_count += 1
+            if(game_board[x,y].current_status in burned):
+                if(game_board[x,y].current_status == BURNING):
+                    # game_board[x,y].new_status = SMOLDERING
 
                     if(wind_direction == N):
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x, y+1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
+
+                            if(canBurn(game_board,x, y+1)):
                                 if(game_board[x, y+1].current_status not in burned):
                                     game_board[x, y+1].new_status = BURNING
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
-                            if(canBurn(x+1, y+1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM]):
+                            if(canBurn(game_board,x+1, y+1)):
                                 if(game_board[x+1, y+1].current_status not in burned):
                                     game_board[x+1, y+1].new_status = BURNING
-                            if(canBurn(x-1, y+1)):
+                            if(canBurn(game_board,x-1, y+1)):
                                 if(game_board[x-1, y+1].current_status not in burned):
                                     game_board[x-1, y+1].new_status = BURNING
-                        if(game_board[x,y].conditions is [HIGH]):
-                            if(canBurn(x, y+2)):
+                        if(game_board[x,y].conditions is HIGH):
+                            if(canBurn(game_board,x, y+2)):
                                 if(game_board[x, y+2].current_status not in burned):
                                     game_board[x, y+2].new_status = BURNING
-                            if(canBurn(x-1, y+2)):
+                            if(canBurn(game_board,x-1, y+2)):
                                 if(game_board[x-1, y+2].current_status not in burned):
                                     game_board[x-1, y+2].new_status = BURNING
-                            if(canBurn(x+1, y+2)):
+                            if(canBurn(game_board,x+1, y+2)):
                                 if(game_board[x+1, y+2].current_status not in burned):
                                     game_board[x+1, y+2].new_status = BURNING
 
                     if(wind_direction == NE):
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x+1, y+1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
+                            if(canBurn(game_board,x+1, y+1)):
                                 if(game_board[x+1, y+1].current_status not in burned):
                                     game_board[x+1, y+1].new_status = BURNING
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
-                            if(canBurn(x, y+1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM]):
+                            if(canBurn(game_board,x, y+1)):
                                 if(game_board[x, y+1].current_status not in burned):
                                     game_board[x, y+1].new_status = BURNING
-                            if(canBurn(x+1, y)):
+                            if(canBurn(game_board,x+1, y)):
                                 if(game_board[x+1, y].current_status not in burned):
                                     game_board[x+1, y].new_status = BURNING
-                        if(game_board[x,y].conditions == [HIGH]):
-                            if(canBurn(x+2, y+2)):
+                        if(game_board[x,y].conditions == HIGH):
+                            if(canBurn(game_board,x+2, y+2)):
                                 if(game_board[x+2, y+2].current_status not in burned):
                                     game_board[x+2, y+2].new_status = BURNING
-                            if(canBurn(x, y+2)):
+                            if(canBurn(game_board,x, y+2)):
                                 if(game_board[x, y+2].current_status not in burned):
                                     game_board[x, y+2].new_status = BURNING
-                            if(canBurn(x+2, y)):
+                            if(canBurn(game_board,x+2, y)):
                                 if(game_board[x+2, y].current_status not in burned):
                                     game_board[x+2, y].new_status = BURNING
 
                     if(wind_direction == E):
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x+1, y)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
+                            if(canBurn(game_board,x+1, y)):
                                 if(game_board[x+1, y].current_status not in burned):
                                     game_board[x+1, y].new_status = BURNING
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
-                            if(canBurn(x+1, y+1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM]):
+                            if(canBurn(game_board,x+1, y+1)):
                                 if(game_board[x+1, y+1].current_status not in burned):
                                     game_board[x+1, y+1].new_status = BURNING
-                            if(canBurn(x+1, y)):
+                            if(canBurn(game_board,x+1, y)):
                                 if(game_board[x+1, y-1].current_status not in burned):
                                     game_board[x+1, y-1].new_status = BURNING
-                        if(game_board[x,y].conditions == [HIGH]):
-                            if(canBurn(x+2, y+2)):
+                        if(game_board[x,y].conditions == HIGH):
+                            if(canBurn(game_board,x+2, y+2)):
                                 if(game_board[x+2, y+1].current_status not in burned):
                                     game_board[x+2, y+1].new_status = BURNING
-                            if(canBurn(x, y+2)):
+                            if(canBurn(game_board,x, y+2)):
                                 if(game_board[x+2, y-1].current_status not in burned):
                                     game_board[x+2, y-1].new_status = BURNING
-                            if(canBurn(x+2, y)):
+                            if(canBurn(game_board,x+2, y)):
                                 if(game_board[x+2, y].current_status not in burned):
                                     game_board[x+2, y].new_status = BURNING
 
                     if(wind_direction == SE):
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x+1, y-1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
+                            if(canBurn(game_board,x+1, y-1)):
                                 if(game_board[x+1, y-1].current_status not in burned):
                                     game_board[x+1, y-1].new_status = BURNING
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
-                            if(canBurn(x, y-1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM]):
+                            if(canBurn(game_board,x, y-1)):
                                 if(game_board[x, y-1].current_status not in burned):
                                     game_board[x, y-1].new_status = BURNING
-                            if(canBurn(x+1, y)):
+                            if(canBurn(game_board,x+1, y)):
                                 if(game_board[x+1, y-1].current_status not in burned):
                                     game_board[x+1, y-1].new_status = BURNING
-                        if(game_board[x,y].conditions == [HIGH]):
-                            if(canBurn(x+2, y-2)):
+                        if(game_board[x,y].conditions == HIGH):
+                            if(canBurn(game_board,x+2, y-2)):
                                 if(game_board[x+2, y-2].current_status not in burned):
                                     game_board[x+2, y-2].new_status = BURNING
-                            if(canBurn(x, y-2)):
+                            if(canBurn(game_board,x, y-2)):
                                 if(game_board[x, y-2].current_status not in burned):
                                     game_board[x, y-2].new_status = BURNING
-                            if(canBurn(x+2, y)):
+                            if(canBurn(game_board,x+2, y)):
                                 if(game_board[x+2, y].current_status not in burned):
                                     game_board[x+2, y].new_status = BURNING                            
 
 
                     if(wind_direction == S):
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x, y-1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
+                            if(canBurn(game_board,x, y-1)):
                                 if(game_board[x, y-1].current_status not in burned):
                                     game_board[x, y-1].new_status = BURNING
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
-                            if(canBurn(x-1, y-1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM]):
+                            if(canBurn(game_board,x-1, y-1)):
                                 if(game_board[x-1, y-1].current_status not in burned):
                                     game_board[x-1, y-1].new_status = BURNING
-                            if(canBurn(x+1, y-1)):
+                            if(canBurn(game_board,x+1, y-1)):
                                 if(game_board[x+1, y-1].current_status not in burned):
                                     game_board[x+1, y-1].new_status = BURNING
-                        if(game_board[x,y].conditions == [HIGH]):
-                            if(canBurn(x+1, y-2)):
+                        if(game_board[x,y].conditions == HIGH):
+                            if(canBurn(game_board,x+1, y-2)):
                                 if(game_board[x+1, y-2].current_status not in burned):
                                     game_board[x+1, y-2].new_status = BURNING
-                            if(canBurn(x, y-2)):
+                            if(canBurn(game_board,x, y-2)):
                                 if(game_board[x, y-2].current_status not in burned):
                                     game_board[x, y-2].new_status = BURNING
-                            if(canBurn(x-1, y-2)):
+                            if(canBurn(game_board,x-1, y-2)):
                                 if(game_board[x-1, y-2].current_status not in burned):
                                     game_board[x-1, y-2].new_status = BURNING 
 
                     if(wind_direction == SW):
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x-1, y-1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
+                            if(canBurn(game_board,x-1, y-1)):
                                 if(game_board[x-1, y-1].current_status not in burned):
                                     game_board[x-1, y-1].new_status = BURNING
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
-                            if(canBurn(x, y-1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM]):
+                            if(canBurn(game_board,x, y-1)):
                                 if(game_board[x, y-1].current_status not in burned):
                                     game_board[x, y-1].new_status = BURNING
-                            if(canBurn(x-1, y)):
+                            if(canBurn(game_board,x-1, y)):
                                 if(game_board[x-1, y].current_status not in burned):
                                     game_board[x-1, y].new_status = BURNING
-                        if(game_board[x,y].conditions == [HIGH]):
-                            if(canBurn(x-2, y-2)):
+                        if(game_board[x,y].conditions == HIGH):
+                            if(canBurn(game_board,x-2, y-2)):
                                 if(game_board[x-2, y-2].current_status not in burned):
                                     game_board[x-2, y-2].new_status = BURNING
-                            if(canBurn(x, y-2)):
+                            if(canBurn(game_board,x, y-2)):
                                 if(game_board[x, y-2].current_status not in burned):
                                     game_board[x, y-2].new_status = BURNING
-                            if(canBurn(x-2, y)):
+                            if(canBurn(game_board,x-2, y)):
                                 if(game_board[x-2, y].current_status not in burned):
                                     game_board[x-2, y].new_status = BURNING 
 
                     if(wind_direction == W):
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x-1, y)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
+                            if(canBurn(game_board,x-1, y)):
                                 if(game_board[x-1, y].current_status not in burned):
                                     game_board[x-1, y].new_status = BURNING
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
-                            if(canBurn(x-1, y-1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM]):
+                            if(canBurn(game_board,x-1, y-1)):
                                 if(game_board[x-1, y-1].current_status not in burned):
                                     game_board[x-1, y-1].new_status = BURNING
-                            if(canBurn(x-1, y+1)):
+                            if(canBurn(game_board,x-1, y+1)):
                                 if(game_board[x-1, y+1].current_status not in burned):
                                     game_board[x-1, y+1].new_status = BURNING
-                        if(game_board[x,y].conditions == [HIGH]):
-                            if(canBurn(x-2, y-1)):
+                        if(game_board[x,y].conditions == HIGH):
+                            if(canBurn(game_board,x-2, y-1)):
                                 if(game_board[x-2, y-1].current_status not in burned):
                                     game_board[x-2, y-1].new_status = BURNING
-                            if(canBurn(x-2, y-2)):
+                            if(canBurn(game_board,x-2, y-2)):
                                 if(game_board[x-2, y+1].current_status not in burned):
                                     game_board[x-2, y+1].new_status = BURNING
-                            if(canBurn(x-2, y)):
+                            if(canBurn(game_board,x-2, y)):
                                 if(game_board[x-2, y].current_status not in burned):
                                     game_board[x-2, y].new_status = BURNING 
 
                     else: #NW
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM, LOW]):
-                            if(canBurn(x-1, y+1)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM, LOW]):
+                            if(canBurn(game_board,x-1, y+1)):
                                 if(game_board[x-1, y+1].current_status not in burned):
                                     game_board[x-1, y+1].new_status = BURNING
-                        if(game_board[x,y].conditions in [[HIGH], MEDIUM]):
-                            if(canBurn(x-1, y)):
+                        if(game_board[x,y].conditions in [HIGH, MEDIUM]):
+                            if(canBurn(game_board,x-1, y)):
                                 if(game_board[x-1, y].current_status not in burned):
                                     game_board[x-1, y].new_status = BURNING
-                            if(canBurn(x, y+1)):
+                            if(canBurn(game_board,x, y+1)):
                                 if(game_board[x, y+1].current_status not in burned):
                                     game_board[x, y+1].new_status = BURNING
-                        if(game_board[x,y].conditions == [HIGH]):
-                            if(canBurn(x-2, y+2)):
+                        if(game_board[x,y].conditions == HIGH):
+                            if(canBurn(game_board,x-2, y+2)):
                                 if(game_board[x-2, y+2].current_status not in burned):
                                     game_board[x-2, y+2].new_status = BURNING
-                            if(canBurn(x-2, y)):
+                            if(canBurn(game_board,x-2, y)):
                                 if(game_board[x-2, y].current_status not in burned):
                                     game_board[x-2, y].new_status = BURNING
-                            if(canBurn(x, y+2)):
+                            if(canBurn(game_board,x, y+2)):
                                 if(game_board[x, y+2].current_status not in burned):
                                     game_board[x, y+2].new_status = BURNING 
 
 
-                if(current_status == SMOLDERING):
-                    burn_count +=1    
-                if(burn_count == 5):
-                    new_status = SMOLDERING
+                if(game_board[x,y].current_status == BURNING):
+                    game_board[x,y].burn_count +=1
 
-                if(burn_count == 8):
-                    new_status = BURNT
+                if(game_board[x,y].burn_count == 5):
+                    game_board[x,y].new_status = SMOLDERING
+
+                if(game_board[x,y].burn_count == 8):
+                    game_board[x,y].new_status = BURNT
             
     
             # Now that we're inside the loops we need to apply our rules
@@ -453,8 +478,7 @@ def advance_board(game_board):
                 
     for x in range(game_board.shape[0]):
         for y in range(game_board.shape[1]):
-            game_board[x,y].current_status = new_status
-            game_board[x,y].new_status = ""
+            game_board[x,y].current_status = game_board[x,y].new_status
     # return the new board
     return game_board
 
@@ -462,60 +486,38 @@ def advance_board(game_board):
 
 
 # In[41]:
-
-# 
-prob_tree=0.6
-board_size = 50
-
-#
-fig = plt.figure(figsize=(10,10))
-
-# 
-game_board = gb
-gb[0] = [RED]*(len(gb[1]))
-# 
-plotgrid(game_board)
-
-windspeed = 5
-wind_direction = NE;
-humidity = 0;
-elevation = 7;
-
-# 
-on_fire = True
-
-# Use a lovely for loop instead of a while loop
-for i in range(100):
-
+def runSimulation():
     # 
+    prob_tree=0.6
     board_size = 50
-    game_board = set_fire(game_board)
+
+    #
+    fig = plt.figure(figsize=(10,10))
+
+    # 
+    game_board = set_board(burnable)
+    for x in range(len(game_board[0])-1):
+        game_board[0][x].current_status = BURNING
+    # 
+    #plotgrid(game_board)
+
+    windspeed = 5
+    wind_direction = NE;
+    humidity = 0;
+    elevation = 7;
+
+    # 
+    on_fire = True
     
+    # Use a lovely for loop instead of a while loop
+    for i in range(30):
+        for x in range(10):
+            game_board = advance_board(game_board,wind_direction=wind_direction)
 
-
-    set_board(game_board)
-    advance_board(game_board)
-
-
-    # 
-    plotgrid(game_board)
-    time.sleep(0.05)  # 
-    clear_output(wait=True)
-    display(fig)
-    fig.clear()
-
-
-
-
-
-    # 
-
-
-    # 
-
-
-# 
-plt.close()               
+        wind_direction= random.choice([N,S,W,E,NW,NE,SW,SE])
+        # save the game board with the frame number
+        plotgrid(game_board,i+1)
+             
 
 
 
